@@ -9,8 +9,8 @@ import {
 } from "react-router-dom";
 
 import NavLinks from "./components/Navlinks";
-import ChatList from "./components/Chatlist";
-import ChatBox from "./components/Chatbox";
+import ChatList from "./components/ChatList";
+import ChatBox from "./components/ChatBox";
 import SearchModal from "./components/SearchModal";
 import "./index.css";
 import { auth } from "./firebase/firebase";
