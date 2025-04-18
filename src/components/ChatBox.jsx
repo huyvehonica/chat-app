@@ -95,12 +95,12 @@ const ChatBox = ({ selectedUser }) => {
                     {msg?.sender === senderEmail ? (
                       <div
                         key={index}
-                        className="flex flex-col items-end w-full"
+                        className="flex flex-col items-end justify-end w-full"
                       >
-                        <span className="flex gap-1  h-auto text-sx text-left">
+                        <div className="flex justify-end gap-1 w-[70%] h-auto text-sx text-left">
                           <div>
-                            <div className="bg-white px-4 py-2 rounded-lg shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-right">
-                              <p className="text-sx text-[#2A3D39] leading-relaxed">
+                            <div className="bg-white flex justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
+                              <p className="text-sx text-[#2A3D39] leading-relaxed tex">
                                 {msg.text}
                               </p>
                             </div>
@@ -108,18 +108,18 @@ const ChatBox = ({ selectedUser }) => {
                               {formatTimestamp(msg.timestamp)}
                             </p>
                           </div>
-                        </span>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex flex-col items-start w-full">
-                        <span className="flex gap-1  w-[40%] h-auto text-sx text-right">
+                        <span className="flex gap-1  w-[70%] h-auto text-sx text-right">
                           <img
                             src={imageDefault}
                             alt="defaultImage"
                             className="h-11 w-11 object-cover rounded-full"
                           />
                           <div>
-                            <div className="bg-white px-4 py-2 rounded-lg shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-left">
+                            <div className="bg-white px-4 py-2 rounded-lg break-all shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-left">
                               <p className="text-sx text-[#2A3D39] leading-relaxed">
                                 {msg.text}
                               </p>
@@ -135,7 +135,7 @@ const ChatBox = ({ selectedUser }) => {
                 ))}
               </div>
             </section>
-            <div className="sticky lg:bottom-0 bottom-[60px] p-3 h-fit w-full">
+            <div className="fixed lg:bottom-0 bottom-[20px] p-3 h-fit w-full">
               <div>
                 <form
                   onSubmit={handleSendMessage}
