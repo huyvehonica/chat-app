@@ -3,8 +3,15 @@ import { FaSearch } from "react-icons/fa";
 import { FaXmark } from "react-icons/fa6";
 import { RiSearchLine } from "react-icons/ri";
 import imageDefault from "../assets/default.jpg";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../firebase/firebase";
+import {
+  collection,
+  getDocs,
+  query,
+  snapshotEqual,
+  where,
+} from "firebase/firestore";
+import { db, rtdb } from "../firebase/firebase";
+import { endAt, get, orderByChild, ref, startAt } from "firebase/database";
 
 const SearchModal = ({ startChat }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,25 +31,28 @@ const SearchModal = ({ startChat }) => {
     }
     try {
       const normalizedSearchTerm = searchTem.toLowerCase();
-      const q = query(
-        collection(db, "user"),
-        where("username", ">=", normalizedSearchTerm),
-        where("username", "<=", normalizedSearchTerm + "\uf8ff")
-      );
-      const querySnapshot = await getDocs(q);
-      const foundUsers = [];
-      querySnapshot.forEach((doc) => {
-        foundUsers.push(doc.data());
-      });
-      setUsers(foundUsers);
-      if (foundUsers.length === 0) {
+      const usersRef = ref(rtdb, "users");
+      const snapshot = await get(usersRef);
+
+      if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        const matchedUsers = Object.values(usersData).filter(
+          (user) =>
+            user.username &&
+            user.username.toLowerCase().includes(normalizedSearchTerm)
+        );
+        console.log("Matched Users:", matchedUsers);
+        setUsers(matchedUsers);
+        if (matchedUsers.length === 0) {
+          alert("No users found");
+        }
+      } else {
         alert("No users found");
       }
     } catch (error) {
       console.error("Error searching users:", error);
     }
   };
-  console.log(users);
   return (
     <>
       <button

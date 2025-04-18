@@ -2,10 +2,11 @@ import React from "react";
 import { FaUserPlus } from "react-icons/fa";
 import { useForm } from "react-hook-form";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "../firebase/firebase";
+import { auth, db, rtdb } from "../firebase/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { ref, set } from "firebase/database";
 
 const Register = ({ isLogin, setIsLogin }) => {
   const {
@@ -23,21 +24,33 @@ const Register = ({ isLogin, setIsLogin }) => {
         data.password
       );
       const user = userCredential.user;
+      console.log("User UID:", user.uid);
+      // Ghi vào Firebase Realtime Database
+      console.log("User Ref Path:", `users/${user.uid}`);
 
-      const userDocRef = doc(db, "user", user?.uid);
-
-      await setDoc(userDocRef, {
+      const userRef = ref(rtdb, `users/${user.uid}`);
+      console.log("User Ref Path:", userRef.toString());
+      await set(userRef, {
         uid: user.uid,
         email: user.email,
-        username: user.email?.split("@")[0],
         fullName: data.fullName,
+        username: user.email?.split("@")[0],
         image: "",
-      });
+      })
+        .then(() => {
+          console.log("Data written successfully!");
+        })
+        .catch((error) => {
+          console.error("Error writing data:", error);
+        });
+
+      toast.success("Registration successful!");
+      navigate("/login");
     } catch (err) {
-      console.log(err);
+      console.error(err);
+      toast.error("Registration failed!");
     }
   };
-
   return (
     <section className="flex flex-col justify-center items-center h-[100vh] background-image">
       <div className="bg-white shadow-lg p-5 rounded-xl h-[27rem] w-[20rem] flex flex-col justify-center items-center">

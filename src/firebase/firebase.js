@@ -13,10 +13,12 @@ import {
   getDoc,
   getFirestore,
   onSnapshot,
-  serverTimestamp,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
+import { serverTimestamp, update } from "firebase/database";
+import { getDatabase, ref, set, onValue, get, push } from "firebase/database";
+
 import { LuMessageSquareText } from "react-icons/lu";
 
 // TODO: Add SDKs for Firebase products that you want to use
@@ -33,26 +35,49 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
 };
+const app = initializeApp(firebaseConfig); // Khởi tạo Firebase tại đây
+
+// Initialize services
+const auth = getAuth(app);
+const db = getDatabase(app);
+const rtdb = getDatabase(app);
 export const listenForChats = (setChats) => {
-  const chatRef = collection(db, "chats");
-  const unSubscribe = onSnapshot(chatRef, (snapshot) => {
-    const chatList = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+  console.log("Listening for chats...");
+  const chatRef = ref(rtdb, "chats");
+
+  const unSubscribe = onValue(chatRef, (snapshot) => {
+    const chatList = [];
+    snapshot.forEach((childSnapshot) => {
+      chatList.push({
+        id: childSnapshot.key, // id = uid1-uid2
+        ...childSnapshot.val(),
+      });
+    });
+
+    console.log("Chat list:", chatList);
+
+    // Lấy UID người dùng hiện tại
+    const currentUid = auth?.currentUser?.uid;
+
+    // Lọc những chat mà id chứa uid hiện tại
     const filterChats = chatList.filter((chat) =>
-      chat?.users.some((user) => user?.email === auth?.currentUser?.email)
+      chat?.id.includes(currentUid)
     );
+
+    console.log("Filtered chats:", filterChats);
     setChats(filterChats);
   });
+
   return unSubscribe;
 };
 export const listenForMessages = (chatId, setMessages) => {
-  const chatRef = collection(db, "chats", chatId, "messages");
-  onSnapshot(chatRef, (snapshot) => {
-    const messages = snapshot.docs.map((doc) => doc.data());
-    setMessages(messages);
+  const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
+  onValue(messagesRef, (snapshot) => {
+    const data = snapshot.val();
+    const messages = data ? Object.values(data) : [];
+    setMessages(messages); // Cập nhật state với các tin nhắn mới
   });
 };
 export const sendMessage = async (messagesText, chatId, user1, user2) => {
@@ -64,37 +89,33 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
       user2,
     });
   }
-  const chatRef = doc(db, "chats", chatId);
-  const user1Doc = await getDoc(doc(db, "user", user1));
-  const user2Doc = await getDoc(doc(db, "user", user2));
-  const user1Data = user1Doc.data();
-  const user2Data = user2Doc.data();
-  const chatDoc = await getDoc(chatRef);
-  if (!chatDoc.exists()) {
-    await setDoc(chatRef, {
-      users: [user1Data, user2Data],
-      lastMessage: messagesText,
-      lastMessageTimestamp: serverTimestamp(),
-    });
+  const chatRef = ref(rtdb, `chats/${chatId}`); // Use Realtime Database reference
+  const chatData = {
+    users: [user1, user2],
+    lastMessage: messagesText,
+    lastMessageTimestamp: serverTimestamp(),
+  };
+  const chatSnapshot = await get(chatRef); // Kiểm tra chat có tồn tại không
+  if (!chatSnapshot.exists()) {
+    await set(chatRef, chatData); // Tạo chat mới nếu không tồn tại
   } else {
-    await updateDoc(chatRef, {
+    await update(chatRef, {
       lastMessage: messagesText,
       lastMessageTimestamp: serverTimestamp(),
-    });
+    }); // Cập nhật tin nhắn cuối cùng
   }
-  const messageRef = collection(db, "chats", chatId, "messages");
-  await addDoc(messageRef, {
+  const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
+  const newMessageRef = push(messagesRef);
+  await set(newMessageRef, {
     text: messagesText,
-    sender: auth.currentUser.email,
+    sender: user1, // Hoặc lấy từ auth.currentUser.email nếu người gửi là người dùng hiện tại
     timestamp: serverTimestamp(),
   });
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+
 setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error("Error setting persistence:", error);
 });
-export { auth, db };
+export { auth, db, rtdb };

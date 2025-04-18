@@ -16,7 +16,7 @@ const ChatBox = ({ selectedUser }) => {
       : `${selectedUser?.uid}-${auth?.currentUser?.uid}`;
   const user1 = auth?.currentUser?.uid;
   const user2 = selectedUser?.uid;
-  const senderEmail = auth?.currentUser?.email;
+  const senderEmail = auth?.currentUser?.uid;
 
   useEffect(() => {
     listenForMessages(chatId, setMessages); // Load chat data from JSON file
@@ -30,11 +30,7 @@ const ChatBox = ({ selectedUser }) => {
   }, [messages]);
   const sortedMessages = useMemo(() => {
     return [...messages].sort((a, b) => {
-      const aTimestamp =
-        a?.timestamp?.seconds + a?.timestamp?.nanoseconds / 1e9;
-      const bTimestamp =
-        b?.timestamp?.seconds + b?.timestamp?.nanoseconds / 1e9;
-      return aTimestamp - bTimestamp; // Sort by last message timestamp in descending order
+      return a.timestamp - b.timestamp; // Tăng dần
     });
   }, [messages]);
   const handleSendMessage = async (e) => {
@@ -53,6 +49,7 @@ const ChatBox = ({ selectedUser }) => {
 
     setMessages((prevMessages) => [...prevMessages, newMessage]);
     setSendMessageText("");
+
     try {
       await sendMessage(sendMessageText, chatId, user1, user2);
     } catch (error) {
