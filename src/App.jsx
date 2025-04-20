@@ -15,26 +15,36 @@ import SearchModal from "./components/SearchModal";
 import "./index.css";
 import { auth } from "./firebase/firebase";
 import { Toaster } from "react-hot-toast";
+import { CircleLoader } from "react-spinners";
 
 const App = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [user, setUser] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(false); // Thêm trạng thái loading
+  const [isLoading, setIsLoading] = useState(true); // Thêm trạng thái loading
 
   useEffect(() => {
     const currentUser = auth.currentUser;
     if (currentUser) {
       setUser(currentUser);
+      setIsLoading(false);
     }
     const unSubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
+      setIsLoading(false);
     });
     return () => {
       unSubscribe();
     };
   }, []);
-
+  if (isLoading) {
+    // Hiển thị spinner trong khi xác thực
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <CircleLoader color="#01AA85" size={100} />
+      </div>
+    );
+  }
   return (
     <>
       <Router>
