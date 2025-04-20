@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
+import { useMemo } from "react";
 import { FaSearch } from "react-icons/fa";
 import { FaXmark } from "react-icons/fa6";
 import { RiSearchLine } from "react-icons/ri";
@@ -12,6 +13,8 @@ import {
 } from "firebase/firestore";
 import { db, rtdb } from "../firebase/firebase";
 import { endAt, get, orderByChild, ref, startAt } from "firebase/database";
+import toast from "react-hot-toast";
+import debounce from "lodash/debounce";
 
 const SearchModal = ({ startChat }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,13 +27,15 @@ const SearchModal = ({ startChat }) => {
   const closeModal = () => {
     setIsModalOpen(false);
   };
-  const handleSearch = async () => {
-    if (!searchTem.trim()) {
-      alert("Please enter a search term");
+  const handleSearch = async (term) => {
+    if (!term.trim()) {
+      toast("Please enter a search term", {
+        icon: "😥",
+      });
       return;
     }
     try {
-      const normalizedSearchTerm = searchTem.toLowerCase();
+      const normalizedSearchTerm = term.toLowerCase();
       const usersRef = ref(rtdb, "users");
       const snapshot = await get(usersRef);
 
@@ -44,14 +49,27 @@ const SearchModal = ({ startChat }) => {
         console.log("Matched Users:", matchedUsers);
         setUsers(matchedUsers);
         if (matchedUsers.length === 0) {
-          alert("No users found");
+          toast("No users found", {
+            icon: "😥",
+          });
         }
       } else {
-        alert("No users found");
+        toast("No users found", {
+          icon: "😥",
+        });
       }
     } catch (error) {
       console.error("Error searching users:", error);
     }
+  };
+  const debouncedSearch = useCallback(
+    debounce((term) => handleSearch(term), 500),
+    []
+  );
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSearchTem(value);
+    debouncedSearch(value);
   };
   return (
     <>
@@ -87,11 +105,12 @@ const SearchModal = ({ startChat }) => {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      onChange={(e) => setSearchTem(e.target.value)}
+                      value={searchTem}
+                      onChange={handleInputChange}
                       className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg outline-none w-full p-2.5"
                     />
                     <button
-                      onClick={handleSearch}
+                      onClick={() => handleSearch(searchTem)}
                       className="bg-green-900 text-white px-3 py-2 rounded-lg"
                     >
                       <FaSearch />
