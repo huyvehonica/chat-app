@@ -17,12 +17,14 @@ import { auth } from "./firebase/firebase";
 import { Toaster } from "react-hot-toast";
 import { CircleLoader } from "react-spinners";
 import VideoCall from "./components/VideoCall";
+import useResponsiveView from "./hooks/useResponsiveView"; // Import hook để kiểm tra chế độ mobile
 
 const App = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [user, setUser] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // Thêm trạng thái loading
+  const [isLoading, setIsLoading] = useState(true);
+  const [showChatBox, setShowChatBox] = useState(false); // State để hiển thị ChatBox trên mobile
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -38,14 +40,17 @@ const App = () => {
       unSubscribe();
     };
   }, []);
+
+  const isMobileView = useResponsiveView();
+
   if (isLoading) {
-    // Hiển thị spinner trong khi xác thực
     return (
       <div className="flex justify-center items-center h-screen">
         <CircleLoader color="#01AA85" size={100} />
       </div>
     );
   }
+
   return (
     <>
       <Router>
@@ -64,8 +69,26 @@ const App = () => {
               user ? (
                 <div className="flex lg:flex-row flex-col items-start w-[100%]">
                   <NavLinks />
-                  <ChatList setSelectedUser={setSelectedUser} />
-                  <ChatBox selectedUser={selectedUser} />
+                  {isMobileView ? (
+                    showChatBox ? (
+                      <ChatBox
+                        selectedUser={selectedUser}
+                        onBack={() => setShowChatBox(false)} // Quay lại ChatList
+                      />
+                    ) : (
+                      <ChatList
+                        setSelectedUser={(user) => {
+                          setSelectedUser(user);
+                          setShowChatBox(true); // Chuyển sang ChatBox
+                        }}
+                      />
+                    )
+                  ) : (
+                    <>
+                      <ChatList setSelectedUser={setSelectedUser} />
+                      <ChatBox selectedUser={selectedUser} />
+                    </>
+                  )}
                 </div>
               ) : (
                 <Navigate to="/login" />
@@ -73,8 +96,6 @@ const App = () => {
             }
           />
           <Route path="/video-call" element={<VideoCall />} />
-
-          {/* Mặc định chuyển hướng đến /login nếu không khớp route */}
           <Route
             path="*"
             element={<Navigate to={user ? "/chat" : "/login"} />}

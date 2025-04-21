@@ -71,7 +71,7 @@ const ChatList = ({ setSelectedUser }) => {
   };
 
   return (
-    <section className="relative hidden lg:flex flex-col items-start justify-start bg-white h-[100vh] w-[100%] md:w-[600px]  ">
+    <section className="relative  lg:flex flex-col items-start justify-start bg-white h-[100vh] w-[100%] lg:w-[600px]  ">
       <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0 z-[100] border-r border-[#9090902c]">
         <main className="flex items-center gap-3">
           <img

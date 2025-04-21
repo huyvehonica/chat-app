@@ -1,16 +1,18 @@
 import React, { useMemo, useRef } from "react";
 import formatTimestamp from "../utils/formatTimestamp"; // Assuming you have a utility function to format timestamps
 import imageDefault from "../assets/default.jpg";
-import { RiSendPlaneFill } from "react-icons/ri";
+import { RiArrowLeftLine, RiSendPlaneFill } from "react-icons/ri";
 import { messageData } from "../data/messageData";
 import { useState, useEffect } from "react";
 import { auth, listenForMessages, sendMessage } from "../firebase/firebase";
 import logo from "../assets/logo.png"; // Assuming you have a logo image
 import CallVideoIcon from "./CallVideoIcon";
+import MessageList from "./MessageList";
 
-const ChatBox = ({ selectedUser }) => {
+const ChatBox = ({ selectedUser, onBack }) => {
   const [messages, setMessages] = useState([]);
   const [sendMessageText, setSendMessageText] = useState("");
+
   const scrollRef = useRef(null);
   const chatId =
     auth?.currentUser?.uid < selectedUser?.uid
@@ -19,7 +21,6 @@ const ChatBox = ({ selectedUser }) => {
   const user1 = auth?.currentUser?.uid;
   const user2 = selectedUser?.uid;
   const senderEmail = auth?.currentUser?.uid;
-
   useEffect(() => {
     listenForMessages(chatId, setMessages); // Load chat data from JSON file
   }, [chatId]);
@@ -67,8 +68,14 @@ const ChatBox = ({ selectedUser }) => {
     <>
       {selectedUser ? (
         <section className="flex flex-col items-start justify-start h-screen w-[100%] background-image">
-          <header className="border-b border-gray-200 w-[100%] h-[81px] m:h-fit p-4 bg-white">
-            <main className="flex items-center gap-3 jus">
+          <header className=" border-b border-gray-200 w-[100%] h-[81px] m:h-fit p-4 bg-white">
+            <main className="  flex items-center gap-3 jus">
+              <button
+                className="p-2 rounded-full hover:bg-[#D9F2ED] block md:hidden"
+                onClick={onBack}
+              >
+                <RiArrowLeftLine color="#01aa85" size={24} />
+              </button>
               <div className="flex items-center gap-3">
                 <span>
                   <img
@@ -91,81 +98,15 @@ const ChatBox = ({ selectedUser }) => {
               </div>
             </main>
           </header>
-          <main className="custom-scrollbar relative h-full w-[100%] flex flex-col justify-between ">
-            <section className="px-3 pt-5">
-              <div
-                ref={scrollRef}
-                className="overflow-auto h-[80vh] custom-scrollbar"
-                style={{ scrollBehavior: "smooth" }}
-              >
-                {sortedMessages?.map((msg, index) => (
-                  <div key={index}>
-                    {msg?.sender === senderEmail ? (
-                      <div
-                        key={index}
-                        className="flex flex-col items-end justify-end w-full"
-                      >
-                        <div className="flex justify-end gap-1 w-[70%] h-auto text-sx text-left">
-                          <div>
-                            <div className="bg-white flex justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
-                              <p className="text-sx text-[#2A3D39] leading-relaxed tex">
-                                {msg.text}
-                              </p>
-                            </div>
-                            <p className="text-gray-400 text-xs text-right mt-3">
-                              {formatTimestamp(msg.timestamp)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-start w-full">
-                        <span className="flex gap-1  w-[70%] h-auto text-sx text-right">
-                          <img
-                            src={imageDefault}
-                            alt="defaultImage"
-                            className="h-11 w-11 object-cover rounded-full"
-                          />
-                          <div>
-                            <div className="bg-white px-4 py-2 rounded-lg break-all shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-left">
-                              <p className="text-sx text-[#2A3D39] leading-relaxed">
-                                {msg.text}
-                              </p>
-                            </div>
-                            <p className="text-gray-400 text-xs text-left mt-1">
-                              {formatTimestamp(msg.timestamp)}
-                            </p>
-                          </div>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-            <div className="fixed lg:bottom-0 bottom-[20px] p-3 h-fit w-full">
-              <div>
-                <form
-                  onSubmit={handleSendMessage}
-                  className="flex items-center bg-white h-[45px] w-full px-2 rounded-lg relative shadow-lg"
-                >
-                  <input
-                    type="text"
-                    value={sendMessageText}
-                    onChange={(e) => setSendMessageText(e.target.value)}
-                    placeholder="Write your message"
-                    className="h-full text-[#2A3D39] outline-none text-[16px] pl-3 pr-[50px] rounded-lg w-[100%]"
-                  />
-                  <button
-                    type="submit"
-                    className="flex items-center justify-center absolute right-3 p-2 rounded-full bg-[#D9f2ed] hover:bg-[#c8eae3]"
-                  >
-                    <RiSendPlaneFill color="#01AA85" />
-                  </button>
-                </form>
-              </div>
-            </div>
-          </main>
+          <MessageList
+            messages={sortedMessages}
+            senderEmail={senderEmail}
+            scrollRef={scrollRef}
+            sendMessageText={sendMessageText}
+            setSendMessageText={setSendMessageText}
+            handleSendMessage={handleSendMessage}
+            selectedUser={selectedUser}
+          />
         </section>
       ) : (
         <section className="h-screen w-full bg-[#e5f6f3]">
