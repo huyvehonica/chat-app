@@ -16,6 +16,7 @@ import "./index.css";
 import { auth } from "./firebase/firebase";
 import { Toaster } from "react-hot-toast";
 import { CircleLoader } from "react-spinners";
+import VideoCall from "./components/VideoCall";
 
 const App = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -71,6 +72,8 @@ const App = () => {
               )
             }
           />
+          <Route path="/video-call" element={<VideoCall />} />
+
           {/* Mặc định chuyển hướng đến /login nếu không khớp route */}
           <Route
             path="*"

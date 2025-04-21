@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useMemo } from "react";
 import { FaSearch } from "react-icons/fa";
 import { FaXmark } from "react-icons/fa6";
@@ -20,18 +20,22 @@ const SearchModal = ({ startChat }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTem, setSearchTem] = useState("");
   const [users, setUsers] = useState([]);
+  const [visibleUSers, setVisibleUsers] = useState(5);
 
   const openModal = () => {
     setIsModalOpen(true);
   };
   const closeModal = () => {
     setIsModalOpen(false);
+    setSearchTem("");
+    setUsers([]);
   };
   const handleSearch = async (term) => {
     if (!term.trim()) {
       toast("Please enter a search term", {
         icon: "😥",
       });
+      setUsers([]);
       return;
     }
     try {
@@ -71,6 +75,17 @@ const SearchModal = ({ startChat }) => {
     setSearchTem(value);
     debouncedSearch(value);
   };
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollTop + clientHeight >= scrollHeight - 5) {
+      setVisibleUsers((prev) => prev + 5);
+    }
+  };
+  useEffect(() => {
+    if (isModalOpen) {
+      setVisibleUsers(5);
+    }
+  }, [isModalOpen]);
   return (
     <>
       <button
@@ -117,7 +132,10 @@ const SearchModal = ({ startChat }) => {
                     </button>
                   </div>
                 </div>
-                <div className="mt-6">
+                <div
+                  className="mt-6 custom-scrollbar max-h-[300px] overflow-y-auto scrollBehavior-smooth"
+                  onScroll={handleScroll}
+                >
                   {users?.map((user) => {
                     return (
                       <div

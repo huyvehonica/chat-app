@@ -6,6 +6,8 @@ import { messageData } from "../data/messageData";
 import { useState, useEffect } from "react";
 import { auth, listenForMessages, sendMessage } from "../firebase/firebase";
 import logo from "../assets/logo.png"; // Assuming you have a logo image
+import CallVideoIcon from "./CallVideoIcon";
+
 const ChatBox = ({ selectedUser }) => {
   const [messages, setMessages] = useState([]);
   const [sendMessageText, setSendMessageText] = useState("");
@@ -56,28 +58,37 @@ const ChatBox = ({ selectedUser }) => {
       console.error("Error sending message:", error);
     }
   };
-
+  const handleVideoCall = () => {
+    const roomId = `${auth.currentUser.uid}-${selectedUser.uid}`;
+    const videoCallUrl = `/video-call?roomId=${roomId}`;
+    window.open(videoCallUrl, "_blank", "width=800,height=600");
+  };
   return (
     <>
       {selectedUser ? (
         <section className="flex flex-col items-start justify-start h-screen w-[100%] background-image">
           <header className="border-b border-gray-200 w-[100%] h-[81px] m:h-fit p-4 bg-white">
-            <main className="flex items-center gap-3">
-              <span>
-                <img
-                  src={selectedUser?.image || imageDefault}
-                  className="w-11 h-11 object-cover rounded-full"
-                />
-              </span>
-              <span>
-                <h3 className="font-semibold text-[#2A3D39] text-lg">
-                  {selectedUser?.fullName || "Chatfrik User"}
-                </h3>
-                <p className="font-light text-[#2A3D39] text-lsm">
-                  {" "}
-                  {selectedUser?.username || "Chatfrik User"}
-                </p>
-              </span>
+            <main className="flex items-center gap-3 jus">
+              <div className="flex items-center gap-3">
+                <span>
+                  <img
+                    src={selectedUser?.image || imageDefault}
+                    className="w-11 h-11 object-cover rounded-full"
+                  />
+                </span>
+                <span>
+                  <h3 className="font-semibold text-[#2A3D39] text-lg">
+                    {selectedUser?.fullName || "Chatfrik User"}
+                  </h3>
+                  <p className="font-light text-[#2A3D39] text-lsm">
+                    {" "}
+                    {selectedUser?.username || "Chatfrik User"}
+                  </p>
+                </span>
+              </div>
+              <div className="flex items-center gap-3 ml-auto">
+                <CallVideoIcon onClick={handleVideoCall} />
+              </div>
             </main>
           </header>
           <main className="custom-scrollbar relative h-full w-[100%] flex flex-col justify-between ">
