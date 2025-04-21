@@ -59,7 +59,7 @@ const VideoCallPage = () => {
           createOffer(pc, roomIdFromQuery);
         } else {
           // Nếu là người nhận, lắng nghe offer từ Firebase
-          listenForOffer(pc);
+          listenForSignaling(pc, roomIdFromQuery);
         }
       })
       .catch((err) => console.error("Error accessing media devices:", err));
@@ -81,11 +81,12 @@ const VideoCallPage = () => {
     set(offerRef, offer);
   };
 
-  const listenForOffer = (pc) => {
+  const listenForSignaling = (pc, roomId) => {
+    // Lắng nghe offer từ Firebase
     const offerRef = ref(rtdb, `rooms/${roomId}/offer`);
     onValue(offerRef, async (snapshot) => {
       const offer = snapshot.val();
-      if (offer) {
+      if (offer && pc.signalingState === "stable") {
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
         // Tạo answer và lưu vào Firebase
@@ -101,7 +102,7 @@ const VideoCallPage = () => {
     const answerRef = ref(rtdb, `rooms/${roomId}/answer`);
     onValue(answerRef, async (snapshot) => {
       const answer = snapshot.val();
-      if (answer) {
+      if (answer && pc.signalingState === "have-local-offer") {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
       }
     });
@@ -111,7 +112,9 @@ const VideoCallPage = () => {
     onValue(candidatesRef, (snapshot) => {
       snapshot.forEach((childSnapshot) => {
         const candidate = new RTCIceCandidate(childSnapshot.val());
-        pc.addIceCandidate(candidate);
+        pc.addIceCandidate(candidate).catch((err) =>
+          console.error("Error adding ICE candidate:", err)
+        );
       });
     });
   };
