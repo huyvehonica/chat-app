@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ref, set, onValue, push } from "firebase/database";
+import { ref, set, onValue, push, off } from "firebase/database";
 import { rtdb } from "../firebase/firebase"; // Firebase Realtime Database instance
 import { useLocation } from "react-router-dom";
 
@@ -11,12 +11,11 @@ const VideoCallPage = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Lấy roomId từ query parameters
     const queryParams = new URLSearchParams(location.search);
     const roomIdFromQuery = queryParams.get("roomId");
     setRoomId(roomIdFromQuery);
+    const isCaller = queryParams.get("caller") === "true";
 
-    // Truy cập camera và microphone
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
       .then((stream) => {
@@ -24,17 +23,12 @@ const VideoCallPage = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        // Tạo kết nối WebRTC
         const pc = new RTCPeerConnection({
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" }, // STUN server
-          ],
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
         });
 
-        // Thêm stream vào kết nối
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-        // Lắng nghe ICE candidates và gửi lên Firebase
         pc.onicecandidate = (event) => {
           if (event.candidate) {
             const candidatesRef = ref(
@@ -45,7 +39,6 @@ const VideoCallPage = () => {
           }
         };
 
-        // Nhận stream từ người dùng khác
         pc.ontrack = (event) => {
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = event.streams[0];
@@ -54,21 +47,23 @@ const VideoCallPage = () => {
 
         peerConnection.current = pc;
 
-        // Nếu là người gọi, tạo offer
-        if (roomIdFromQuery) {
+        if (isCaller) {
           createOffer(pc, roomIdFromQuery);
         } else {
-          // Nếu là người nhận, lắng nghe offer từ Firebase
           listenForSignaling(pc, roomIdFromQuery);
         }
       })
       .catch((err) => console.error("Error accessing media devices:", err));
 
     return () => {
-      // Cleanup
       if (peerConnection.current) {
         peerConnection.current.close();
       }
+
+      // Remove listeners to avoid duplication
+      off(ref(rtdb, `rooms/${roomIdFromQuery}/offer`));
+      off(ref(rtdb, `rooms/${roomIdFromQuery}/answer`));
+      off(ref(rtdb, `rooms/${roomIdFromQuery}/candidates`));
     };
   }, [location.search]);
 
