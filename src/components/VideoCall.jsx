@@ -54,9 +54,11 @@ const VideoCall = () => {
         setStatus("SDK Ready");
         setIsSDKReady(true);
 
+        // 👉 Chỉ người gọi mới khởi tạo cuộc gọi
         if (currentUser.uid === callerParam) {
           initiateCall(calleeParam);
         }
+        // Người nhận chỉ cần sẵn sàng để nhận cuộc gọi
       } catch (error) {
         console.error("Error in call initialization:", error);
         setError(`Failed to initialize: ${error.message || "Unknown error"}`);
