@@ -6,7 +6,7 @@ import {
 } from "@tencentcloud/call-uikit-react";
 import * as GenerateTestUserSig from "../debug/GenerateTestUserSig-es";
 import { useLocation, useNavigate } from "react-router-dom";
-import { auth } from "../firebase/firebase"; // Import your Firebase auth
+import { auth } from "../firebase/firebase";
 
 const VideoCall = () => {
   const SDKAppID = 20022132;
@@ -24,14 +24,12 @@ const VideoCall = () => {
   const [status, setStatus] = useState("Initializing...");
 
   useEffect(() => {
-    // Check if user is logged in
     const currentUser = auth.currentUser;
     if (!currentUser) {
       setError("You must be logged in to make a call");
       return;
     }
 
-    // Ensure we have both caller and callee IDs
     if (!callerParam || !calleeParam) {
       setError("Missing caller or callee information");
       return;
@@ -40,8 +38,6 @@ const VideoCall = () => {
     const initializeCall = async () => {
       try {
         setStatus("Generating credentials...");
-
-        // Generate user signature for the current user
         const { userSig } = GenerateTestUserSig.genTestUserSig({
           userID: currentUser.uid,
           SDKAppID,
@@ -49,19 +45,15 @@ const VideoCall = () => {
         });
 
         setStatus("Initializing TUICallKit...");
-
-        // Initialize call kit
         await TUICallKitServer.init({
           userID: currentUser.uid,
           userSig,
           SDKAppID,
         });
 
-        console.log("TUICallKit initialized successfully");
         setStatus("SDK Ready");
         setIsSDKReady(true);
 
-        // If this user is the caller, initiate the call
         if (currentUser.uid === callerParam) {
           initiateCall(calleeParam);
         }
@@ -73,9 +65,7 @@ const VideoCall = () => {
 
     initializeCall();
 
-    // Clean up when component unmounts
     return () => {
-      // Try to destroy the call kit instance if possible
       try {
         if (
           TUICallKitServer.destroy &&
@@ -92,23 +82,10 @@ const VideoCall = () => {
   const initiateCall = async (calleeID) => {
     try {
       setStatus("Initiating call...");
-      console.log(`Calling ${calleeID}...`);
-
-      // Check which method is available in your version
-      if (typeof TUICallKitServer.call === "function") {
-        await TUICallKitServer.call({
-          userID: calleeID,
-          type: TUICallType.VIDEO_CALL,
-        });
-      } else if (typeof TUICallKitServer.calls === "function") {
-        await TUICallKitServer.calls({
-          userIDList: [calleeID],
-          type: TUICallType.VIDEO_CALL,
-        });
-      } else {
-        throw new Error("No valid call method found on TUICallKitServer");
-      }
-
+      await TUICallKitServer.call({
+        userID: calleeID,
+        type: TUICallType.VIDEO_CALL,
+      });
       setStatus("Call connected");
     } catch (error) {
       console.error("Error initiating call:", error);
@@ -145,12 +122,10 @@ const VideoCall = () => {
 
   return (
     <div className="relative h-screen w-screen">
-      {/* End call button */}
       <div className="absolute top-4 left-4 z-10">
         <button
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           onClick={() => {
-            // Try to hang up if the method exists
             if (
               TUICallKitServer.hangup &&
               typeof TUICallKitServer.hangup === "function"
@@ -163,8 +138,6 @@ const VideoCall = () => {
           End Call
         </button>
       </div>
-
-      {/* TUICallKit component */}
       <TUICallKit />
     </div>
   );
