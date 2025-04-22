@@ -17,6 +17,7 @@ const VideoCallPage = () => {
   const callerUserID = searchParams.get("callerUserID");
   const calleeUserID = searchParams.get("calleeUserID");
   const [initSuccess, setInitSuccess] = useState(false);
+  const [hasCalled, setHasCalled] = useState(false); // 👈 cờ để ngăn gọi lại
 
   useEffect(() => {
     const initTUICallKit = async () => {
@@ -35,19 +36,22 @@ const VideoCallPage = () => {
 
         setInitSuccess(true);
 
-        await TUICallKitServer.calls({
-          userIDList: [calleeUserID],
-          type: TUICallType.VIDEO_CALL,
-        });
+        if (!hasCalled) {
+          await TUICallKitServer.calls({
+            userIDList: [calleeUserID],
+            type: TUICallType.VIDEO_CALL,
+          });
+          setHasCalled(true); // ✅ Đánh dấu đã gọi
+        }
       } catch (err) {
         console.error("TUICallKit init failed:", err);
       }
     };
 
-    if (callerUserID && calleeUserID) {
+    if (callerUserID && calleeUserID && !hasCalled) {
       initTUICallKit();
     }
-  }, [callerUserID, calleeUserID]);
+  }, [callerUserID, calleeUserID, hasCalled]);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
