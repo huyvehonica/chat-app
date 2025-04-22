@@ -1,58 +1,42 @@
-import React, { useState, useEffect } from "react";
-import Login from "./components/Login";
-import Register from "./components/Register";
+// App.jsx
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
+import useAuthStore from "./store/authStore";
+import useResponsiveView from "./hooks/useResponsiveView";
 
+import Login from "./components/Login";
+import Register from "./components/Register";
 import NavLinks from "./components/Navlinks";
 import ChatList from "./components/ChatList";
 import ChatBox from "./components/ChatBox";
 import SearchModal from "./components/SearchModal";
-import "./index.css";
-import { auth } from "./firebase/firebase";
-import { Toaster } from "react-hot-toast";
-import { CircleLoader } from "react-spinners";
 import VideoCall from "./components/VideoCall";
-
-import useResponsiveView from "./hooks/useResponsiveView"; // Import hook để kiểm tra chế độ mobile
 import IncomingCall from "./components/IncomingCall";
 import OutgoingCall from "./components/OutgoingCall";
 import CallEnded from "./components/CallEnded";
 
+import { Toaster } from "react-hot-toast";
+import { CircleLoader } from "react-spinners";
+import "./index.css";
+
 const App = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [user, setUser] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showChatBox, setShowChatBox] = useState(false); // State để hiển thị ChatBox trên mobile
+  const { user, isLoggedIn, loading, listenToAuthChanges } = useAuthStore();
 
-  useEffect(() => {
-    const unSubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      if (firebaseUser) {
-        const userData = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        };
-        setUser(userData);
-      } else {
-        setUser(null);
-        console.log("User logged out");
-      }
-      setIsLoading(false);
-    });
-
-    return () => unSubscribe();
-  }, []);
-
+  const [selectedUser, setSelectedUser] = React.useState(null);
+  const [showChatBox, setShowChatBox] = React.useState(false);
   const isMobileView = useResponsiveView();
 
-  if (isLoading) {
+  useEffect(() => {
+    const unsubscribe = listenToAuthChanges();
+    return () => unsubscribe(); // Cleanup
+  }, []);
+
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <CircleLoader color="#01AA85" size={100} />
@@ -66,29 +50,29 @@ const App = () => {
         <Routes>
           <Route
             path="/login"
-            element={!user ? <Login /> : <Navigate to="/chat" />}
+            element={!isLoggedIn ? <Login /> : <Navigate to="/chat" />}
           />
           <Route
             path="/register"
-            element={!user ? <Register /> : <Navigate to="/chat" />}
+            element={!isLoggedIn ? <Register /> : <Navigate to="/chat" />}
           />
           <Route
             path="/chat"
             element={
-              user ? (
+              isLoggedIn ? (
                 <div className="flex lg:flex-row flex-col items-start w-[100%]">
                   <NavLinks />
                   {isMobileView ? (
                     showChatBox ? (
                       <ChatBox
                         selectedUser={selectedUser}
-                        onBack={() => setShowChatBox(false)} // Quay lại ChatList
+                        onBack={() => setShowChatBox(false)}
                       />
                     ) : (
                       <ChatList
                         setSelectedUser={(user) => {
                           setSelectedUser(user);
-                          setShowChatBox(true); // Chuyển sang ChatBox
+                          setShowChatBox(true);
                         }}
                       />
                     )
@@ -118,13 +102,11 @@ const App = () => {
           <Route path="/call-ended" element={<CallEnded />} />
           <Route
             path="*"
-            element={<Navigate to={user ? "/chat" : "/login"} />}
+            element={<Navigate to={isLoggedIn ? "/chat" : "/login"} />}
           />
         </Routes>
       </Router>
-      <div>
-        <Toaster position="top-right" />
-      </div>
+      <Toaster position="top-right" />
     </>
   );
 };
