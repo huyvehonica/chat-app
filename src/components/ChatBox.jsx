@@ -64,7 +64,6 @@ const ChatBox = ({ selectedUser, onBack }) => {
       console.error("User is not authenticated");
       return;
     }
-    const roomId = `${auth.currentUser.uid}-${selectedUser.uid}`;
     const videoCallUrl = `/video-call?callerUserID=${auth.currentUser.uid}&calleeUserID=${selectedUser.uid}`;
     window.open(videoCallUrl, "_blank", "width=800,height=600");
   };
