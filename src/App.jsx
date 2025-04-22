@@ -17,7 +17,11 @@ import { auth } from "./firebase/firebase";
 import { Toaster } from "react-hot-toast";
 import { CircleLoader } from "react-spinners";
 import VideoCall from "./components/VideoCall";
+
 import useResponsiveView from "./hooks/useResponsiveView"; // Import hook để kiểm tra chế độ mobile
+import IncomingCall from "./components/IncomingCall";
+import OutgoingCall from "./components/OutgoingCall";
+import CallEnded from "./components/CallEnded";
 
 const App = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -27,18 +31,23 @@ const App = () => {
   const [showChatBox, setShowChatBox] = useState(false); // State để hiển thị ChatBox trên mobile
 
   useEffect(() => {
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      setUser(currentUser);
-      setIsLoading(false);
-    }
-    const unSubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
+    const unSubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+        };
+        setUser(userData);
+      } else {
+        setUser(null);
+        console.log("User logged out");
+      }
       setIsLoading(false);
     });
-    return () => {
-      unSubscribe();
-    };
+
+    return () => unSubscribe();
   }, []);
 
   const isMobileView = useResponsiveView();
@@ -96,6 +105,17 @@ const App = () => {
             }
           />
           <Route path="/video-call" element={<VideoCall />} />
+          <Route
+            path="/incoming-call"
+            element={<IncomingCall currentUser={user} />}
+          />
+          <Route
+            path="/outgoing-call"
+            element={
+              <OutgoingCall currentUser={user} calleeUid="RECEIVER_UID" />
+            }
+          />
+          <Route path="/call-ended" element={<CallEnded />} />
           <Route
             path="*"
             element={<Navigate to={user ? "/chat" : "/login"} />}

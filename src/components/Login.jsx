@@ -33,7 +33,9 @@ const Login = () => {
   return (
     <section className="flex flex-col justify-center items-center h-[100vh] background-image">
       <div className="bg-white shadow-lg p-5 rounded-xl h-[27rem] w-[20rem] flex flex-col justify-center items-center">
-        <h1 className="text-center text-[28px] font-bold ">Sign In</h1>
+        <h1 className="text-center text-gray-900 text-[28px] font-bold ">
+          Sign In
+        </h1>
         <p className="text-center text-sm text-gray-400 mb-10">
           Welcome back, login to continue
         </p>

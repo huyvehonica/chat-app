@@ -94,7 +94,9 @@ const ChatList = ({ setSelectedUser }) => {
       </header>
       <div className="w-[100%] mt-[10px] px-5">
         <header className="items-center flex justify-between">
-          <h3 className=" text-[16px] ">Messages ({chats?.length || 0})</h3>
+          <h3 className="text-gray-800 text-[16px] ">
+            Messages ({chats?.length || 0})
+          </h3>
           <SearchModal startChat={startChat} />
         </header>
       </div>
