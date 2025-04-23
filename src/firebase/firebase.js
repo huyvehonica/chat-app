@@ -119,3 +119,47 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error("Error setting persistence:", error);
 });
 export { auth, db, rtdb };
+export const initiateCall = async (callerUid, receiverUid, callType) => {
+  const callId = `${callerUid}-${receiverUid}-${Date.now()}`;
+  const callRef = ref(rtdb, `calls/${callId}`);
+
+  await set(callRef, {
+    callId,
+    callerUid,
+    receiverUid,
+    callType,
+    status: "initiating",
+    createdAt: serverTimestamp(),
+  });
+
+  return callId;
+};
+
+// Listen for incoming calls
+export const listenForIncomingCalls = (currentUserUid, onIncomingCall) => {
+  const callsRef = ref(rtdb, "calls");
+
+  return onValue(callsRef, (snapshot) => {
+    if (!snapshot.exists()) return;
+
+    snapshot.forEach((childSnapshot) => {
+      const call = childSnapshot.val();
+
+      // Check if this call is for the current user and is still active
+      if (call.receiverUid === currentUserUid && call.status === "initiating") {
+        onIncomingCall(call);
+      }
+    });
+  });
+};
+
+// Update call status
+export const updateCallStatus = async (callId, status) => {
+  const callRef = ref(rtdb, `calls/${callId}`);
+  await update(callRef, { status });
+};
+
+// End call
+export const endCall = async (callId) => {
+  await updateCallStatus(callId, "ended");
+};

@@ -4,7 +4,12 @@ import imageDefault from "../assets/default.jpg";
 import { RiArrowLeftLine, RiSendPlaneFill } from "react-icons/ri";
 import { messageData } from "../data/messageData";
 import { useState, useEffect } from "react";
-import { auth, listenForMessages, sendMessage } from "../firebase/firebase";
+import {
+  auth,
+  initiateCall,
+  listenForMessages,
+  sendMessage,
+} from "../firebase/firebase";
 import logo from "../assets/logo.png"; // Assuming you have a logo image
 import CallVideoIcon from "./CallVideoIcon";
 import MessageList from "./MessageList";
@@ -59,13 +64,26 @@ const ChatBox = ({ selectedUser, onBack }) => {
       console.error("Error sending message:", error);
     }
   };
-  const handleVideoCall = () => {
+  const handleVideoCall = async () => {
     if (!auth.currentUser) {
       console.error("User is not authenticated");
       return;
     }
-    const videoCallUrl = `/video-call?callerUserID=${auth.currentUser.uid}&calleeUserID=${selectedUser.uid}`;
-    window.open(videoCallUrl, "_blank", "width=800,height=600");
+
+    try {
+      // Create a call in Firebase
+      const callId = await initiateCall(
+        auth.currentUser.uid,
+        selectedUser.uid,
+        "video"
+      );
+
+      // Navigate to video call page
+      const videoCallUrl = `/video-call?callId=${callId}&callerUserID=${auth.currentUser.uid}&calleeUserID=${selectedUser.uid}`;
+      window.open(videoCallUrl, "_blank", "width=800,height=600");
+    } catch (error) {
+      console.error("Error initiating video call:", error);
+    }
   };
   return (
     <>

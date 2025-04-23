@@ -1,4 +1,3 @@
-// App.jsx
 import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -15,10 +14,8 @@ import NavLinks from "./components/Navlinks";
 import ChatList from "./components/ChatList";
 import ChatBox from "./components/ChatBox";
 import SearchModal from "./components/SearchModal";
-import VideoCall from "./components/VideoCall";
-import IncomingCall from "./components/IncomingCall";
-import OutgoingCall from "./components/OutgoingCall";
-import CallEnded from "./components/CallEnded";
+import VideoCall from "./components/VideoCallPage";
+import IncomingCallNotification from "./components/IncomingCallNotification";
 
 import { Toaster } from "react-hot-toast";
 import { CircleLoader } from "react-spinners";
@@ -47,6 +44,7 @@ const App = () => {
   return (
     <>
       <Router>
+        {isLoggedIn && <IncomingCallNotification />}
         <Routes>
           <Route
             path="/login"
@@ -88,18 +86,10 @@ const App = () => {
               )
             }
           />
-          <Route path="/video-call" element={<VideoCall />} />
           <Route
-            path="/incoming-call"
-            element={<IncomingCall currentUser={user} />}
+            path="/video-call"
+            element={isLoggedIn ? <VideoCall /> : <Navigate to="/login" />}
           />
-          <Route
-            path="/outgoing-call"
-            element={
-              <OutgoingCall currentUser={user} calleeUid="RECEIVER_UID" />
-            }
-          />
-          <Route path="/call-ended" element={<CallEnded />} />
           <Route
             path="*"
             element={<Navigate to={isLoggedIn ? "/chat" : "/login"} />}
