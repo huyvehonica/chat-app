@@ -4,30 +4,54 @@ import {
   auth,
   listenForIncomingCalls,
   updateCallStatus,
+  rtdb,
 } from "../firebase/firebase";
 import { RiPhoneFill, RiCloseLine } from "react-icons/ri";
+import { ref, get } from "firebase/database";
 
 const IncomingCallNotification = () => {
   const [incomingCall, setIncomingCall] = useState(null);
+  const [callerName, setCallerName] = useState("User");
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    const unsubscribe = listenForIncomingCalls(auth.currentUser.uid, (call) => {
-      setIncomingCall(call);
-      // Play ringtone here
-      const audio = new Audio("/ringtone.mp3"); // Add a ringtone to your public folder
-      audio.loop = true;
-      audio.play().catch((e) => console.error("Could not play ringtone:", e));
+    let audio;
 
-      return () => {
+    const unsubscribe = listenForIncomingCalls(
+      auth.currentUser.uid,
+      async (call) => {
+        setIncomingCall(call);
+
+        // Fetch caller's information from the database
+        try {
+          const userRef = ref(rtdb, `users/${call.callerUid}`);
+          const userSnapshot = await get(userRef);
+
+          if (userSnapshot.exists()) {
+            const userData = userSnapshot.val();
+            setCallerName(userData.fullName || userData.username || "User");
+            console.log("Caller data:", userData);
+          }
+        } catch (error) {
+          console.error("Error fetching caller information:", error);
+        }
+
+        // Play ringtone
+        audio = new Audio("/ringtone.mp3");
+        audio.loop = true;
+        audio.play().catch((e) => console.error("Could not play ringtone:", e));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      if (audio) {
         audio.pause();
         audio.currentTime = 0;
-      };
-    });
-
-    return () => unsubscribe();
+      }
+    };
   }, [auth.currentUser]);
 
   const handleAcceptCall = async () => {
@@ -55,13 +79,19 @@ const IncomingCallNotification = () => {
         <div className="flex flex-col items-center">
           <div className="w-20 h-20 rounded-full bg-teal-100 flex items-center justify-center mb-4">
             <img
-              src={`https://ui-avatars.com/api/?name=User&background=01AA85&color=fff`}
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                callerName
+              )}&background=01AA85&color=fff`}
               alt="Caller"
               className="w-16 h-16 rounded-full"
             />
           </div>
-          <h3 className="text-xl font-semibold mb-1">Incoming Video Call</h3>
-          <p className="text-gray-600 mb-6">User is calling you</p>
+          <h3 className="text-xl text-gray-600 font-semibold mb-1">
+            Incoming Video Call
+          </h3>
+          <h2 className="text-gray-600 mb-6scroll-m-20  pb-2 text-3xl font-semibold tracking-tight first:mt-0">
+            {callerName} is calling you
+          </h2>
 
           <div className="flex justify-center gap-6 w-full">
             <button

@@ -15,6 +15,7 @@ import { db, rtdb } from "../firebase/firebase";
 import { endAt, get, orderByChild, ref, startAt } from "firebase/database";
 import toast from "react-hot-toast";
 import debounce from "lodash/debounce";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SearchModal = ({ startChat }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -94,79 +95,93 @@ const SearchModal = ({ startChat }) => {
       >
         <RiSearchLine color="#01AA85" className="w-[18px] h-[18px]" />
       </button>
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex justify-center items-center bg-[#00170cb7]"
-          onClick={closeModal}
-        >
-          <div
-            className="relative p-4 w-full max-w-md max-h-full"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex justify-center items-center "
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.3 } }}
+            onClick={closeModal}
           >
-            <div className="relative bg-[#01AA85] w-[100%] rounded-md shadow-lg">
-              <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-300">
-                <h3 className="text-xl font-semibold text-white">
-                  Search Chat
-                </h3>
-                <button
-                  onClick={closeModal}
-                  className="text-white bg-transparent hover:bg-[#D9f2ed] hover:text-[#01AA85] rounded-lg text-sm w-8 h-8 inline-flex items-center justify-center"
-                >
-                  <FaXmark size={20} />
-                </button>
-              </div>
-              <div className="p-4 md:p-5">
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={searchTem}
-                      onChange={handleInputChange}
-                      className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg outline-none w-full p-2.5"
-                    />
+            <div
+              className="fixed inset-0 z-[100] flex justify-center items-center"
+              onClick={closeModal}
+            >
+              <div
+                className="relative p-4 w-full max-w-md max-h-full"
+                onClick={(e) => e.stopPropagation()}
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 50, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <div className="relative bg-[#01AA85] w-[100%] rounded-md shadow-lg">
+                  <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-300">
+                    <h3 className="text-xl font-semibold text-white">
+                      Search Chat
+                    </h3>
                     <button
-                      onClick={() => handleSearch(searchTem)}
-                      className="bg-green-900 text-white px-3 py-2 rounded-lg"
+                      onClick={closeModal}
+                      className="text-white bg-transparent hover:bg-[#D9f2ed] hover:text-[#01AA85] rounded-lg text-sm w-8 h-8 inline-flex items-center justify-center"
                     >
-                      <FaSearch />
+                      <FaXmark size={20} />
                     </button>
                   </div>
-                </div>
-                <div
-                  className="mt-6 custom-scrollbar max-h-[300px] overflow-y-auto scrollBehavior-smooth"
-                  onScroll={handleScroll}
-                >
-                  {users?.map((user) => {
-                    return (
-                      <div
-                        onClick={() => {
-                          startChat(user);
-                          closeModal();
-                        }}
-                        className="flex items-start gap-3 bg-[#15eabc34] p-2 mb-2 rounded-lg cursor-pointer border-[#ffffff20] shadow-lg "
-                      >
-                        <img
-                          src={user?.image || imageDefault}
-                          className="h-[40px] w-[40px] rounded-full"
-                          alt=""
+                  <div className="p-4 md:p-5">
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={searchTem}
+                          onChange={handleInputChange}
+                          className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg outline-none w-full p-2.5"
                         />
-                        <span>
-                          <h2 className="p-0 font-semibold text-white text-[18px]">
-                            {user?.fullName || "User"}
-                          </h2>
-                          <p className="text-[13px] text-white">
-                            {user?.username}
-                          </p>
-                        </span>
+                        <button
+                          onClick={() => handleSearch(searchTem)}
+                          className="bg-green-900 text-white px-3 py-2 rounded-lg"
+                        >
+                          <FaSearch />
+                        </button>
                       </div>
-                    );
-                  })}
+                    </div>
+                    <div
+                      className="mt-6 custom-scrollbar max-h-[300px] overflow-y-auto scrollBehavior-smooth"
+                      onScroll={handleScroll}
+                    >
+                      {users?.map((user) => {
+                        return (
+                          <div
+                            onClick={() => {
+                              startChat(user);
+                              closeModal();
+                            }}
+                            className="flex items-start gap-3 bg-[#15eabc34] p-2 mb-2 rounded-lg cursor-pointer border-[#ffffff20] shadow-lg "
+                          >
+                            <img
+                              src={user?.image || imageDefault}
+                              className="h-[40px] w-[40px] rounded-full"
+                              alt=""
+                            />
+                            <span>
+                              <h2 className="p-0 font-semibold text-white text-[18px]">
+                                {user?.fullName || "User"}
+                              </h2>
+                              <p className="text-[13px] text-white">
+                                {user?.username}
+                              </p>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

@@ -8,11 +8,14 @@ import { auth, db, listenForChats, rtdb } from "../firebase/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { onValue, ref } from "firebase/database";
+import UserProfileModal from "./UserProfileComponent";
 
 const ChatList = ({ setSelectedUser }) => {
   const [chats, setChats] = useState([]);
   const [user, setUser] = useState(null); // State to hold the current user
   const [userDetails, setUserDetails] = useState({}); // Lưu thông tin người dùng theo UID
+  const [showProfileModal, setShowProfileModal] = useState(false); // State để kiểm soát hiển thị modal
+  const [selectedProfile, setSelectedProfile] = useState(null); // State để lưu thông tin người dùng được chọn
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -69,11 +72,23 @@ const ChatList = ({ setSelectedUser }) => {
   const startChat = (user) => {
     setSelectedUser(user); // Reset selected user when starting a new chat
   };
+  const openProfileModal = (profileUser) => {
+    setSelectedProfile(profileUser);
+    setShowProfileModal(true);
+  };
+
+  // Hàm đóng modal profile
+  const closeProfileModal = () => {
+    setShowProfileModal(false);
+  };
 
   return (
     <section className="relative  lg:flex flex-col items-start justify-start bg-white h-[100vh] w-[100%] lg:w-[600px]  ">
       <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0 z-[100] border-r border-[#9090902c]">
-        <main className="flex items-center gap-3">
+        <main
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => openProfileModal(user)}
+        >
           <img
             src={imageDefault}
             alt="user"
@@ -112,7 +127,7 @@ const ChatList = ({ setSelectedUser }) => {
           return (
             <button
               key={chat?.id}
-              className="flex items-start justify-between w-[100%] border-b border-[#9090901d] px-5 pb-3 pt-3"
+              className=" cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] px-5 pb-3 pt-3"
               onClick={() => startChat(userDetails[otherUsers[0]])}
             >
               <div className="flex items-start gap-3">
@@ -137,6 +152,11 @@ const ChatList = ({ setSelectedUser }) => {
           );
         })}
       </main>
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={closeProfileModal}
+        user={selectedProfile}
+      />
     </section>
   );
 };

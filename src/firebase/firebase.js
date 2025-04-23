@@ -80,6 +80,7 @@ export const listenForMessages = (chatId, setMessages) => {
     setMessages(messages); // Cập nhật state với các tin nhắn mới
   });
 };
+
 export const sendMessage = async (messagesText, chatId, user1, user2) => {
   if (!messagesText || !chatId || !user1 || !user2) {
     console.error("sendMessage error: Missing parameters", {

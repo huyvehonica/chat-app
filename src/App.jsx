@@ -44,7 +44,7 @@ const App = () => {
   return (
     <>
       <Router>
-        {isLoggedIn && <IncomingCallNotification />}
+        {isLoggedIn && <IncomingCallNotification selectedUser={selectedUser} />}
         <Routes>
           <Route
             path="/login"
