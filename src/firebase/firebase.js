@@ -75,8 +75,13 @@ export const listenForChats = (setChats) => {
 export const listenForMessages = (chatId, setMessages) => {
   const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
   onValue(messagesRef, (snapshot) => {
-    const data = snapshot.val();
-    const messages = data ? Object.values(data) : [];
+    const messages = [];
+    snapshot.forEach((childSnapshot) => {
+      messages.push({
+        messageId: childSnapshot.key, // Lấy messageId
+        ...childSnapshot.val(),
+      });
+    });
     setMessages(messages); // Cập nhật state với các tin nhắn mới
   });
 };

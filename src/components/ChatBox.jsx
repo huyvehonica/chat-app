@@ -11,8 +11,9 @@ import {
   sendMessage,
 } from "../firebase/firebase";
 import logo from "../assets/logo.png"; // Assuming you have a logo image
-import CallVideoIcon from "./CallVideoIcon";
+import CallVideoIcon from "./icons/CallVideoIcon";
 import MessageList from "./MessageList";
+import { CiVideoOn } from "react-icons/ci";
 
 const ChatBox = ({ selectedUser, onBack }) => {
   const [messages, setMessages] = useState([]);
@@ -115,7 +116,9 @@ const ChatBox = ({ selectedUser, onBack }) => {
                 </span>
               </div>
               <div className="flex items-center gap-3 ml-auto">
-                <CallVideoIcon onClick={handleVideoCall} />
+                <button className="p-2 rounded-full hover:bg-[#D9F2ED] hidden md:block">
+                  <CiVideoOn size={22} onClick={handleVideoCall} />
+                </button>
               </div>
             </main>
           </header>
@@ -123,10 +126,12 @@ const ChatBox = ({ selectedUser, onBack }) => {
             messages={sortedMessages}
             senderEmail={senderEmail}
             scrollRef={scrollRef}
+            setMessages={setMessages}
             sendMessageText={sendMessageText}
             setSendMessageText={setSendMessageText}
             handleSendMessage={handleSendMessage}
             selectedUser={selectedUser}
+            chatId={chatId}
           />
         </section>
       ) : (

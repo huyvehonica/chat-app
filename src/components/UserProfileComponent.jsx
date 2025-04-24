@@ -11,12 +11,12 @@ import {
 } from "firebase/storage";
 import { getDatabase, ref as dbRef, update, onValue } from "firebase/database";
 import toast from "react-hot-toast";
-import user1 from "../assets/user1.png"; // Default avatar image
+import defaultImage from "../assets/user1.png"; // Default avatar image
 
 const UserProfileModal = ({ isOpen, onClose, user }) => {
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
-  const [avatar, setAvatar] = useState(user?.image || user1);
+  const [avatar, setAvatar] = useState(user?.image || defaultImage);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
@@ -24,9 +24,10 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
 
   useEffect(() => {
     console.log("User Profile Modal:", user);
-    if (user?.photoURL) {
-      setAvatar(user.photoURL);
-      setPreviousPhotoURL(user.photoURL);
+
+    if (user?.image) {
+      setAvatar(user?.image);
+      setPreviousPhotoURL(user.image);
     }
   }, [user]);
 

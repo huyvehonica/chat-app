@@ -90,11 +90,13 @@ const ChatList = ({ setSelectedUser }) => {
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => openProfileModal(user)}
         >
-          <img
-            src={user?.image || imageDefault}
-            alt="user"
-            className="w-[44px] h-[44px] object-cover rounded-full"
-          />
+          <div>
+            <img
+              src={user?.image || imageDefault}
+              alt="user"
+              className="w-[44px] h-[44px] object-cover rounded-full"
+            />
+          </div>
           <span>
             <h3 className="p-0 font-semibold text-[#283D39] md:text-[17px]">
               {user?.fullName || "User"}
@@ -128,14 +130,14 @@ const ChatList = ({ setSelectedUser }) => {
           return (
             <button
               key={chat?.id}
-              className=" cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] px-5 pb-3 pt-3"
+              className=" cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] px-5 pb-3 pt-3 hover:bg-accent"
               onClick={() => startChat(userDetails[otherUsers[0]])}
             >
               <div className="flex items-start gap-3">
                 <div className="w-11 h-11 rounded-full overflow-hidden">
                   <img
                     src={userDetails[otherUsers[0]]?.image || imageDefault}
-                    className="object-cover "
+                    className="object-cover w-full h-full"
                     alt="imageDefaultUser"
                   />
                 </div>
