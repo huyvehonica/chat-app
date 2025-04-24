@@ -9,6 +9,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { onValue, ref } from "firebase/database";
 import UserProfileModal from "./UserProfileComponent";
+import { getDatabase, ref as dbRef, update } from "firebase/database";
 
 const ChatList = ({ setSelectedUser }) => {
   const [chats, setChats] = useState([]);
@@ -90,7 +91,7 @@ const ChatList = ({ setSelectedUser }) => {
           onClick={() => openProfileModal(user)}
         >
           <img
-            src={imageDefault}
+            src={user?.image || imageDefault}
             alt="user"
             className="w-[44px] h-[44px] object-cover rounded-full"
           />
@@ -131,11 +132,14 @@ const ChatList = ({ setSelectedUser }) => {
               onClick={() => startChat(userDetails[otherUsers[0]])}
             >
               <div className="flex items-start gap-3">
-                <img
-                  src={userDetails[otherUsers[0]]?.image || imageDefault}
-                  className="h-[40px] w-[40px] rounded-full object-cover"
-                  alt="imageDefaultUser"
-                />
+                <div className="w-11 h-11 rounded-full overflow-hidden">
+                  <img
+                    src={userDetails[otherUsers[0]]?.image || imageDefault}
+                    className="object-cover "
+                    alt="imageDefaultUser"
+                  />
+                </div>
+
                 <span>
                   <h2 className="p-0 font-semibold text-[#2A3d39] text-left text-[17px]">
                     {userDetails[otherUsers[0]]?.fullName || "User"}

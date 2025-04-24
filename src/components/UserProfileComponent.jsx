@@ -1,22 +1,147 @@
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import user1 from "../assets/user1.png"; // Placeholder image, replace with actual user image
-import { FiEdit } from "react-icons/fi";
-import { useState } from "react";
+import { FiCamera, FiEdit } from "react-icons/fi";
 import { UserProfileEditComponent } from "./UserProfileEditComponent";
-// import { UserProfileEditComponent } from "./UserProfileEditComponent";
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { getDatabase, ref as dbRef, update, onValue } from "firebase/database";
+import toast from "react-hot-toast";
+import user1 from "../assets/user1.png"; // Default avatar image
 
 const UserProfileModal = ({ isOpen, onClose, user }) => {
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [avatar, setAvatar] = useState(user?.image || user1);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef(null);
+  const [previousPhotoURL, setPreviousPhotoURL] = useState(null);
+
+  useEffect(() => {
+    console.log("User Profile Modal:", user);
+    if (user?.photoURL) {
+      setAvatar(user.photoURL);
+      setPreviousPhotoURL(user.photoURL);
+    }
+  }, [user]);
+
   const openProfileEditModal = (profileUser) => {
     setSelectedProfile(profileUser);
     setShowProfileEditModal(true);
   };
 
-  // Hàm đóng modal profile
   const closeProfileEditModal = () => {
     setShowProfileEditModal(false);
   };
+
+  const handleCameraClick = () => {
+    fileInputRef.current.click();
+  };
+
+  // Handle file selection
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // File validation
+    if (!file.type.match(/image\/(jpeg|jpg|png|gif|webp)/i)) {
+      toast.error("Please select a valid image file (JPEG, PNG, GIF, WEBP)");
+      return;
+    }
+
+    // Check file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error(
+        "Image size exceeds 5MB limit. Please choose a smaller file."
+      );
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+
+      // Create a consistent file path
+      const filePath = `avatars/${user.uid}/profile`;
+
+      // Get references to Firebase services
+      const storage = getStorage();
+      const imageRef = storageRef(storage, filePath);
+      const db = getDatabase();
+      const userRef = dbRef(db, `users/${user.uid}`);
+
+      // Delete previous image if it exists (to save storage space)
+      if (
+        previousPhotoURL &&
+        previousPhotoURL.includes("avatars/" + user.uid)
+      ) {
+        try {
+          const oldImageRef = storageRef(storage, previousPhotoURL);
+          await deleteObject(oldImageRef);
+          console.log("Previous avatar deleted successfully");
+        } catch (error) {
+          console.log("No previous image found or error deleting:", error);
+        }
+      }
+
+      // Upload new image with progress tracking
+      const uploadTask = await uploadBytes(imageRef, file);
+
+      // Get download URL for the uploaded file
+      const downloadURL = await getDownloadURL(uploadTask.ref);
+
+      // Update state with new avatar URL
+      setAvatar(downloadURL);
+      setPreviousPhotoURL(downloadURL);
+
+      // Update multiple locations in the database to ensure consistency
+      const updates = {
+        image: downloadURL,
+        avatarUpdatedAt: Date.now(),
+      };
+
+      // Update the user profile in Realtime Database
+      await update(userRef, updates);
+
+      // Also update any chat references that might use the user's avatar
+      const userChatsRef = dbRef(db, `userChats/${user.uid}`);
+      onValue(
+        userChatsRef,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const chatIds = Object.keys(snapshot.val());
+
+            // Update user info in each chat where the user participates
+            chatIds.forEach(async (chatId) => {
+              const chatParticipantsRef = dbRef(
+                db,
+                `chats/${chatId}/participants/${user.uid}`
+              );
+              await update(chatParticipantsRef, { photoURL: downloadURL });
+            });
+          }
+        },
+        { onlyOnce: true }
+      );
+
+      toast.success("Profile picture updated successfully!");
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast.error(`Upload failed: ${error.message}`);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Rest of the component remains the same...
+
   return (
     <AnimatePresence>
       {isOpen &&
@@ -25,13 +150,13 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
             isOpen={showProfileEditModal}
             onClose={() => {
               closeProfileEditModal();
-              onClose(); // Đóng toàn bộ modal nếu muốn
+              onClose();
             }}
             user={selectedProfile}
           />
         ) : (
           <motion.div
-            className="fixed inset-0 z-[200] bg-opacity-40 flex justify-center items-center"
+            className="fixed inset-0 z-[200] bg-black/50 bg-opacity-40 flex justify-center items-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.3 } }}
@@ -48,29 +173,59 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col items-center justify-center mb-4">
-                <img
-                  src={user1 || "/default.jpg"}
-                  className="w-[100px] h-[100px] rounded-full object-cover mx-auto mb-4"
-                  alt="User avatar"
-                />
+              <div className="relative flex flex-col items-center justify-center mb-4">
+                <div className="relative w-[100px] h-[100px] mb-4">
+                  <img
+                    src={avatar}
+                    className="w-full h-full rounded-full object-cover border-2 border-[#01AA85]"
+                    alt="User avatar"
+                  />
+                  <div
+                    className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-gray-100"
+                    onClick={handleCameraClick}
+                  >
+                    {uploading ? (
+                      <div className="relative">
+                        <div className="w-5 h-5 border-2 border-t-transparent border-[#01AA85] rounded-full animate-spin" />
+                        {uploadProgress > 0 && (
+                          <div className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-[#01AA85]">
+                            {Math.round(uploadProgress)}%
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <FiCamera className="text-[#01AA85] w-5 h-5" />
+                    )}
+
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
                 <button
-                  className="bg-[#D9F2ED] hover:bg-gray-400 px-2 py-1 items-center flex justify-center rounded-lg cursor-pointer"
+                  className="bg-[#D9F2ED] hover:bg-[#c0e8e1] text-[#01AA85] px-4 py-2 items-center flex justify-center rounded-lg cursor-pointer transition-colors"
                   onClick={() => openProfileEditModal(user)}
                 >
-                  <h3>Edit Profile</h3>
+                  <FiEdit className="mr-2" /> Edit Profile
                 </button>
               </div>
-              <h2 className="text-xl text-gray-500 font-bold text-center">
+
+              <h2 className="text-xl font-bold text-center text-gray-800">
                 {user?.fullName}
               </h2>
               <p className="text-gray-500 text-center">@{user?.username}</p>
               <p className="text-gray-500 text-center">{user?.email}</p>
+
               <button
                 onClick={onClose}
-                className="mt-6 w-full py-2 bg-[#01AA85] text-white rounded-xl"
+                className="mt-6 w-full py-2 bg-[#01AA85] text-white rounded-xl hover:bg-[#018e70] transition-colors"
               >
-                Đóng
+                Close
               </button>
             </motion.div>
           </motion.div>

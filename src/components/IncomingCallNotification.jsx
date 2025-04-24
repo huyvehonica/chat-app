@@ -12,11 +12,12 @@ import { ref, get } from "firebase/database";
 const IncomingCallNotification = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [callerName, setCallerName] = useState("User");
+  const [userImage, setImage] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!auth.currentUser) return;
-
+    console.log("IncomingCallNotification: ", callerName);
     let audio;
 
     const unsubscribe = listenForIncomingCalls(
@@ -31,6 +32,7 @@ const IncomingCallNotification = () => {
 
           if (userSnapshot.exists()) {
             const userData = userSnapshot.val();
+            setImage(userData.image || null); // Set the caller's image if available
             setCallerName(userData.fullName || userData.username || "User");
             console.log("Caller data:", userData);
           }
@@ -77,13 +79,17 @@ const IncomingCallNotification = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-md">
         <div className="flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-teal-100 flex items-center justify-center mb-4">
+          <div className="w-22 h-22 rounded-full bg-teal-100 flex items-center justify-center mb-4">
             <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                callerName
-              )}&background=01AA85&color=fff`}
+              src={
+                userImage
+                  ? userImage // Use caller's profile image if available
+                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      callerName
+                    )}&background=01AA85&color=fff` // Fallback avatar
+              }
               alt="Caller"
-              className="w-16 h-16 rounded-full"
+              className="w-18 h-18 rounded-full object-cover"
             />
           </div>
           <h3 className="text-xl text-gray-600 font-semibold mb-1">

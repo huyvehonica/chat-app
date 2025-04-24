@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import formatTimestamp from "../utils/formatTimestamp";
 import imageDefault from "../assets/default.jpg";
 import { RiSendPlaneFill } from "react-icons/ri";
+import { BsThreeDots } from "react-icons/bs"; // Import dấu "..."
 
 const MessageList = ({
   messages,
@@ -10,7 +11,15 @@ const MessageList = ({
   sendMessageText,
   setSendMessageText,
   handleSendMessage,
+  selectedUser,
 }) => {
+  console.log("messages", messages);
+  console.log("selectedUser", selectedUser);
+  const [activeMenu, setActiveMenu] = useState(null);
+  const toggleMenu = (index) => {
+    setActiveMenu((prev) => (prev === index ? null : index)); // Toggle menu visibility
+  };
+  const [hoveredMessage, setHoveredMessage] = useState(null);
   useEffect(() => {
     if (scrollRef.current) {
       setTimeout(() => {
@@ -28,19 +37,64 @@ const MessageList = ({
           style={{ scrollBehavior: "smooth" }}
         >
           {messages?.map((msg, index) => (
-            <div key={index}>
+            <div
+              key={index}
+              className="relative group" // Add group for hover effect
+              onMouseEnter={() => setHoveredMessage(index)} // Set hovered message
+              onMouseLeave={() => setHoveredMessage(null)}
+            >
               {msg?.sender === senderEmail ? (
                 <div
                   key={index}
                   className="flex flex-col items-end justify-end w-full"
+                  onMouseEnter={() => setHoveredMessage(index)}
+                  onMouseLeave={() => setHoveredMessage(null)}
                 >
-                  <div className="flex justify-end gap-1 w-[70%] h-auto text-sx text-left">
+                  <div className=" flex justify-end gap-1 max-w-[70%] h-auto text-sx text-left">
                     <div>
-                      <div className="bg-white flex justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
+                      <div className="bg-white relative flex justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
                         <p className="text-sx text-[#2A3D39] leading-relaxed tex">
                           {msg.text}
                         </p>
+                        {hoveredMessage === index && (
+                          <>
+                            {activeMenu === index && (
+                              <div className="absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 w-40 z-10">
+                                <ul className="text-sm text-gray-700">
+                                  <li
+                                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => console.log("Reply clicked")}
+                                  >
+                                    Reply
+                                  </li>
+                                  <li
+                                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => console.log("Edit clicked")}
+                                  >
+                                    Edit
+                                  </li>
+                                  <li
+                                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() =>
+                                      console.log("Delete clicked")
+                                    }
+                                  >
+                                    Delete
+                                  </li>
+                                </ul>
+                              </div>
+                            )}
+                            <div className="absolute left-[-30px] top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer">
+                              <BsThreeDots
+                                size={16}
+                                color="#555"
+                                onClick={() => toggleMenu(index)}
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
+
                       <p className="text-gray-400 text-xs text-right mt-3">
                         {formatTimestamp(msg.timestamp)}
                       </p>
@@ -49,17 +103,22 @@ const MessageList = ({
                 </div>
               ) : (
                 <div className="flex flex-col items-start w-full">
-                  <span className="flex gap-1 w-[70%] h-auto text-sx text-right">
+                  <span className="flex gap-1 max-w-[70%] h-auto text-sx text-right">
                     <img
-                      src={imageDefault}
+                      src={selectedUser?.image || imageDefault}
                       alt="defaultImage"
                       className="h-11 w-11 object-cover rounded-full"
                     />
                     <div>
-                      <div className="bg-white px-4 py-2 rounded-lg break-all shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-left">
+                      <div className="relative bg-white px-4 py-2 rounded-lg break-all shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-left">
                         <p className="text-sx text-[#2A3D39] leading-relaxed">
                           {msg.text}
                         </p>
+                        {hoveredMessage === index && (
+                          <div className="absolute flex justify-center items-center top-1/2 -right-7 -translate-y-1/2 h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer">
+                            <BsThreeDots size={16} color="#555" />
+                          </div>
+                        )}
                       </div>
                       <p className="text-gray-400 text-xs text-left mt-1">
                         {formatTimestamp(msg.timestamp)}
