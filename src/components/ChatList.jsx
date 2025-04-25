@@ -44,7 +44,7 @@ const ChatList = ({ setSelectedUser }) => {
       unSubscribe(); // Unsubscribe from the listener when the component unmounts
     };
   }, []);
-  console.log("chat: ", chats);
+  console.log("chat non: ", chats);
   const fetchUserDetails = (uid) => {
     if (userDetails[uid]) return; // Nếu đã có thông tin, không cần lấy lại
 
@@ -58,15 +58,23 @@ const ChatList = ({ setSelectedUser }) => {
       }
     });
   };
+  const getTimestampValue = (timestamp) => {
+    if (!timestamp) return 0;
+    if (typeof timestamp === "number") return timestamp; // milliseconds
+    if (
+      timestamp.seconds !== undefined &&
+      timestamp.nanoseconds !== undefined
+    ) {
+      return timestamp.seconds * 1000 + timestamp.nanoseconds / 1e6; // convert to ms
+    }
+    return 0;
+  };
+
   const sortedChats = useMemo(() => {
     return [...chats].sort((a, b) => {
-      const aTimestamp =
-        a.lastMessageTimestamp?.seconds +
-        a.lastMessageTimestamp?.nanoseconds / 1e9;
-      const bTimestamp =
-        b.lastMessageTimestamp?.seconds +
-        b.lastMessageTimestamp?.nanoseconds / 1e9;
-      return bTimestamp - aTimestamp; // Sort by last message timestamp in descending order
+      const aTimestamp = getTimestampValue(a.lastMessageTimestamp);
+      const bTimestamp = getTimestampValue(b.lastMessageTimestamp);
+      return bTimestamp - aTimestamp;
     });
   }, [chats]);
 
@@ -144,10 +152,12 @@ const ChatList = ({ setSelectedUser }) => {
 
                 <span>
                   <h2 className="p-0 font-semibold text-[#2A3d39] text-left text-[17px]">
-                    {userDetails[otherUsers[0]]?.fullName || "User"}
+                    {userDetails[otherUsers[0]]?.fullName}
                   </h2>
-                  <p className="p-0 font-light text-[#2A3d39] text-left text-[14px] truncate max-w-[140px]">
-                    {chat?.lastMessage || "Hey there, how are you?"}
+                  <p className="p-0 font-light text-gray-500 text-left text-[14px] truncate max-w-[140px]">
+                    {chat?.lastMessageSenderId === auth?.currentUser?.uid
+                      ? `You:  ${chat?.lastMessage}`
+                      : chat?.lastMessage}
                   </p>
                 </span>
               </div>

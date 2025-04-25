@@ -87,6 +87,8 @@ export const listenForMessages = (chatId, setMessages) => {
 };
 
 export const sendMessage = async (messagesText, chatId, user1, user2) => {
+  const currentUserId = auth.currentUser.uid;
+  console.log("Current user ID:", currentUserId);
   if (!messagesText || !chatId || !user1 || !user2) {
     console.error("sendMessage error: Missing parameters", {
       messagesText,
@@ -99,6 +101,7 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
   const chatData = {
     users: [user1, user2],
     lastMessage: messagesText,
+    lastMessageSenderId: currentUserId,
     lastMessageTimestamp: serverTimestamp(),
   };
   const chatSnapshot = await get(chatRef); // Kiểm tra chat có tồn tại không
@@ -107,6 +110,7 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
   } else {
     await update(chatRef, {
       lastMessage: messagesText,
+      lastMessageSenderId: currentUserId,
       lastMessageTimestamp: serverTimestamp(),
     }); // Cập nhật tin nhắn cuối cùng
   }
