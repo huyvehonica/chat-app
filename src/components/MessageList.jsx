@@ -2,10 +2,19 @@ import React, { useRef, useEffect, useState } from "react";
 import formatTimestamp from "../utils/formatTimestamp";
 import imageDefault from "../assets/default.jpg";
 import { RiSendPlaneFill } from "react-icons/ri";
-import { BsThreeDots } from "react-icons/bs"; // Import dấu "..."
-import { ref, set, update } from "firebase/database";
-import { rtdb } from "../firebase/firebase";
+import { BsThreeDots } from "react-icons/bs";
+import { ref as dbRef, set, update } from "firebase/database";
+import {
+  ref as storageRef,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
+import { rtdb, storage } from "../firebase/firebase";
 import { RemoveMessageDialogComponent } from "./RemoveMessageDialogComponent";
+import { LucideUploadCloud } from "lucide-react";
+import { LuFile, LuDownload } from "react-icons/lu";
+import { CgSpinner } from "react-icons/cg";
+import toast from "react-hot-toast";
 
 const MessageList = ({
   messages,
@@ -18,17 +27,23 @@ const MessageList = ({
   selectedUser,
   chatId,
 }) => {
-  console.log("messages", messages);
-  console.log("selectedUser", selectedUser);
   const [activeMenu, setActiveMenu] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState(null); // Lưu thông tin tin nhắn cần xóa
+  const [selectedMessage, setSelectedMessage] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [fileInputRef] = useState(React.createRef());
+
+  const chatBoxRef = useRef(null);
+
   const toggleMenu = (index) => {
-    setActiveMenu((prev) => (prev === index ? null : index)); // Toggle menu visibility
+    setActiveMenu((prev) => (prev === index ? null : index));
   };
+
   const [hoveredMessage, setHoveredMessage] = useState(null);
+
   useEffect(() => {
     if (scrollRef.current) {
       setTimeout(() => {
@@ -36,23 +51,201 @@ const MessageList = ({
       }, 0);
     }
   }, [messages]);
+
   const editMessage = async (chatId, messageId, newText) => {
-    const messageRef = ref(rtdb, `chats/${chatId}/messages/${messageId}`);
+    const messageRef = dbRef(rtdb, `chats/${chatId}/messages/${messageId}`);
     await update(messageRef, {
       text: newText,
       isEdited: true,
     });
-    console.log(`Message ${messageId} updated with new text: ${newText}`);
   };
 
   const deleteMessage = async (chatId, messageId) => {
-    const messageRef = ref(rtdb, `chats/${chatId}/messages/${messageId}`);
+    const messageRef = dbRef(rtdb, `chats/${chatId}/messages/${messageId}`);
     await update(messageRef, { isDeleted: true });
-    console.log(`Message ${messageId} deleted`);
   };
+
+  // Handle file upload to Firebase Storage
+  const uploadFileToFirebase = async (file, messageId) => {
+    try {
+      // Create storage reference
+      const fileStorageRef = storageRef(
+        storage,
+        `chat-files/${chatId}/${messageId}_${file.name}`
+      );
+
+      // Start upload
+      const uploadTask = uploadBytesResumable(fileStorageRef, file);
+
+      // Monitor upload progress and update state
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress((prev) => ({
+            ...prev,
+            [messageId]: progress,
+          }));
+        },
+        (error) => {
+          console.error("Upload error:", error);
+          updateMessageStatus(messageId, "error");
+        },
+        async () => {
+          // Upload complete, get download URL
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+          // Save file message to Realtime Database
+          const messageRef = dbRef(
+            rtdb,
+            `chats/${chatId}/messages/${messageId}`
+          );
+          await update(messageRef, {
+            type: "file",
+            name: file.name,
+            size: file.size,
+            fileURL: downloadURL,
+            status: "done",
+            sender: senderEmail,
+            timestamp: Date.now(),
+          });
+
+          // Update local message state
+          updateMessageStatus(messageId, "done", downloadURL);
+        }
+      );
+    } catch (error) {
+      console.error("File upload error:", error);
+      updateMessageStatus(messageId, "error");
+    }
+  };
+
+  const updateMessageStatus = (id, status, fileURL = null) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.messageId === id ? { ...msg, status, fileURL } : msg
+      )
+    );
+  };
+
+  const handleFileUpload = (file) => {
+    // Check file size limit (100MB)
+    if (file.size > 104857600) {
+      toast.error("File size exceeds 100MB limit.");
+      return;
+    }
+
+    // Create initial message object
+    const messageId = Date.now().toString();
+    const fileMessage = {
+      messageId,
+      type: "file",
+      name: file.name,
+      size: file.size,
+      sender: senderEmail,
+      timestamp: Date.now(),
+      status: "uploading",
+    };
+
+    // Add message to local state
+    setMessages((prev) => [...prev, fileMessage]);
+
+    // Add initial message to database
+    const messageRef = dbRef(rtdb, `chats/${chatId}/messages/${messageId}`);
+    set(messageRef, fileMessage);
+
+    // Start upload process
+    uploadFileToFirebase(file, messageId);
+  };
+
+  const handleDownloadFile = (fileURL, fileName) => {
+    // Create a temporary anchor element to trigger download
+    const link = document.createElement("a");
+    link.href = fileURL;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  useEffect(() => {
+    const handleDragOver = (e) => {
+      e.preventDefault();
+      setIsDragging(true);
+      e.stopPropagation();
+    };
+
+    const handleDragLeave = (e) => {
+      e.preventDefault();
+      setIsDragging(false);
+      e.stopPropagation();
+    };
+
+    const handleDropFile = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        handleFileUpload(file);
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("dragleave", handleDragLeave);
+    window.addEventListener("drop", handleDropFile);
+
+    return () => {
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("dragleave", handleDragLeave);
+      window.removeEventListener("drop", handleDropFile);
+    };
+  }, [chatId, senderEmail]);
+
+  // Handle manual file selection
+  const handleFileSelect = () => {
+    fileInputRef.current.click();
+  };
+
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return "0 B";
+    const k = 1024,
+      sizes = ["B", "KB", "MB", "GB"],
+      i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  // Render upload progress
+  const renderProgress = (progress) => {
+    return (
+      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+        <div
+          className="bg-green-500 h-1.5 rounded-full"
+          style={{ width: `${progress}%` }}
+        ></div>
+      </div>
+    );
+  };
+
   return (
     <main className="custom-scrollbar relative h-full w-[100%] flex flex-col justify-between">
-      <section className="px-3 pt-5">
+      {/* Hidden file input for manual file selection */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFileUpload(e.target.files[0]);
+            e.target.value = null; // Reset input
+          }
+        }}
+      />
+
+      <section className="px-3 pt-5" ref={chatBoxRef}>
         <div
           ref={scrollRef}
           className="overflow-auto h-[80vh] custom-scrollbar"
@@ -61,144 +254,178 @@ const MessageList = ({
           {messages?.map((msg, index) => (
             <div
               key={msg.messageId}
-              className="relative group" // Add group for hover effect
-              onMouseEnter={() => setHoveredMessage(index)} // Set hovered message
+              className="relative group"
+              onMouseEnter={() => setHoveredMessage(index)}
               onMouseLeave={() => setHoveredMessage(null)}
             >
               {msg?.sender === senderEmail ? (
                 <div
-                  className="flex flex-col items-end justify-end w-full"
+                  className="flex flex-col items-end justify-end w-full mb-4"
                   onMouseEnter={() => setHoveredMessage(index)}
                   onMouseLeave={() => setHoveredMessage(null)}
                 >
-                  <div className=" flex justify-end gap-1 max-w-[70%] h-auto text-sx text-left">
+                  <div className="flex justify-end gap-1 max-w-[70%] h-auto text-sx text-left">
                     <div>
-                      <div className="bg-white relative flex justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
-                        {editingMessageId === msg.messageId ? (
-                          <input
-                            value={editText}
-                            autoFocus
-                            onChange={(e) => setEditText(e.target.value)}
-                            onKeyDown={async (e) => {
-                              if (e.key === "Enter") {
-                                await editMessage(
-                                  chatId,
-                                  msg.messageId,
-                                  editText
-                                );
-                                setEditingMessageId(null);
-                              } else if (e.key === "Escape") {
-                                setEditingMessageId(null);
-                              }
-                            }}
-                            onBlur={async () => {
-                              if (editText.trim() !== msg.text) {
-                                await editMessage(
-                                  chatId,
-                                  msg.messageId,
-                                  editText
-                                );
-                              }
-                              setEditingMessageId(null);
-                            }}
-                            className="border border-gray-300 rounded px-2 py-1 w-full focus:outline-none"
-                          />
-                        ) : (
-                          <p className="text-sx text-[#2A3D39] leading-relaxed">
-                            {msg.isDeleted ? (
-                              <i className="text-gray-400">
-                                Message has been deleted
-                              </i>
-                            ) : (
-                              <>
-                                {msg.text}
-                                {msg.isEdited && (
-                                  <span className="text-xs text-gray-400 ml-1">
-                                    (edited)
-                                  </span>
-                                  // hoặc dùng icon chỉnh sửa tùy theo bạn thích
-                                  // <EditIcon className="inline w-3 h-3 ml-1 text-gray-400" />
-                                )}
-                              </>
-                            )}
-                          </p>
-                        )}
-                        {hoveredMessage === index && (
-                          <>
-                            <div
-                              className="absolute left-[-30px] top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer"
-                              onClick={() => toggleMenu(index)}
-                            >
-                              <BsThreeDots size={16} color="#555" />
+                      {/* FILE MESSAGE RENDERING */}
+                      {msg.type === "file" ? (
+                        <div className="bg-white relative flex justify-between items-center gap-3 p-3 rounded-lg shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="text-2xl text-[#01aa85]">
+                              <LuFile className="shrink-0" />
                             </div>
-                            {activeMenu === index && (
-                              <div className="absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 w-40 z-10">
-                                <ul className="text-sm text-gray-700">
-                                  {msg.isDeleted ? (
-                                    // Nếu tin nhắn đã bị xóa, chỉ hiện "Remove"
-                                    <li
-                                      className="p-2 hover:bg-gray-100 cursor-pointer"
-                                      onClick={() => {
-                                        deleteMessagePermanently(
-                                          chatId,
-                                          msg.messageId
-                                        );
-                                        setActiveMenu(null);
-                                        setIsDialogOpen(true);
-                                      }}
-                                    >
-                                      Remove
-                                    </li>
-                                  ) : (
-                                    // Nếu chưa xóa, hiện đủ lựa chọn
-                                    <>
-                                      <li
-                                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                                        onClick={() =>
-                                          console.log("Reply clicked")
-                                        }
-                                      >
-                                        Reply
-                                      </li>
+                            <div className="flex flex-col text-sm max-w-[140px]">
+                              <span className="font-medium text-gray-800 truncate">
+                                {msg.name}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {formatBytes(msg.size)}
+                              </span>
+                              {msg.status === "uploading" &&
+                                uploadProgress[msg.messageId] &&
+                                renderProgress(uploadProgress[msg.messageId])}
+                            </div>
+                          </div>
+                          <div className="ml-auto text-[#01aa85]">
+                            {msg.status === "uploading" ? (
+                              <CgSpinner className="animate-spin" size={20} />
+                            ) : msg.status === "done" ? (
+                              <button
+                                onClick={() =>
+                                  handleDownloadFile(msg.fileURL, msg.name)
+                                }
+                                className="hover:bg-[#e6f7f3] p-1 rounded-full"
+                              >
+                                <LuDownload size={18} />
+                              </button>
+                            ) : (
+                              <span className="text-red-500 text-xs">
+                                Error
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        // REGULAR TEXT MESSAGE
+                        <div className="bg-white relative flex justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
+                          {editingMessageId === msg.messageId ? (
+                            <input
+                              value={editText}
+                              autoFocus
+                              onChange={(e) => setEditText(e.target.value)}
+                              onKeyDown={async (e) => {
+                                if (e.key === "Enter") {
+                                  await editMessage(
+                                    chatId,
+                                    msg.messageId,
+                                    editText
+                                  );
+                                  setEditingMessageId(null);
+                                } else if (e.key === "Escape") {
+                                  setEditingMessageId(null);
+                                }
+                              }}
+                              onBlur={async () => {
+                                if (editText.trim() !== msg.text) {
+                                  await editMessage(
+                                    chatId,
+                                    msg.messageId,
+                                    editText
+                                  );
+                                }
+                                setEditingMessageId(null);
+                              }}
+                              className="border border-gray-300 rounded px-2 py-1 w-full focus:outline-none"
+                            />
+                          ) : (
+                            <p className="text-sx text-[#2A3D39] leading-relaxed">
+                              {msg.isDeleted ? (
+                                <i className="text-gray-400">
+                                  Message has been deleted
+                                </i>
+                              ) : (
+                                <>
+                                  {msg.text}
+                                  {msg.isEdited && (
+                                    <span className="text-xs text-gray-400 ml-1">
+                                      (edited)
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </p>
+                          )}
+
+                          {hoveredMessage === index && (
+                            <>
+                              <div
+                                className="absolute left-[-30px] top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer"
+                                onClick={() => toggleMenu(index)}
+                              >
+                                <BsThreeDots size={16} color="#555" />
+                              </div>
+                              {activeMenu === index && (
+                                <div className="absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 w-40 z-10">
+                                  <ul className="text-sm text-gray-700">
+                                    {msg.isDeleted ? (
                                       <li
                                         className="p-2 hover:bg-gray-100 cursor-pointer"
                                         onClick={() => {
-                                          setEditingMessageId(msg.messageId);
-                                          setEditText(msg.text);
+                                          // Handle permanent delete
                                           setActiveMenu(null);
-                                        }}
-                                      >
-                                        Edit
-                                      </li>
-                                      <li
-                                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                                        onClick={() => {
-                                          setSelectedMessage({
-                                            chatId,
-                                            messageId: msg.messageId,
-                                          });
                                           setIsDialogOpen(true);
                                         }}
                                       >
-                                        Delete
+                                        Remove
                                       </li>
-                                    </>
-                                  )}
-                                </ul>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      <p className="text-gray-400 text-xs text-right mt-3">
+                                    ) : (
+                                      <>
+                                        <li
+                                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                                          onClick={() =>
+                                            console.log("Reply clicked")
+                                          }
+                                        >
+                                          Reply
+                                        </li>
+                                        <li
+                                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                                          onClick={() => {
+                                            setEditingMessageId(msg.messageId);
+                                            setEditText(msg.text);
+                                            setActiveMenu(null);
+                                          }}
+                                        >
+                                          Edit
+                                        </li>
+                                        <li
+                                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                                          onClick={() => {
+                                            setSelectedMessage({
+                                              chatId,
+                                              messageId: msg.messageId,
+                                            });
+                                            setIsDialogOpen(true);
+                                          }}
+                                        >
+                                          Delete
+                                        </li>
+                                      </>
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-gray-400 text-xs text-right mt-1">
                         {formatTimestamp(msg.timestamp)}
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-start w-full">
+                <div className="flex flex-col items-start w-full mb-4">
                   <span className="flex gap-1 max-w-[70%] h-auto text-sx text-right">
                     <img
                       src={selectedUser?.image || imageDefault}
@@ -206,22 +433,52 @@ const MessageList = ({
                       className="h-11 w-11 object-cover rounded-full"
                     />
                     <div>
-                      <div className="relative bg-white px-4 py-2 rounded-lg break-all shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-left">
-                        <p className="text-sx text-[#2A3D39] leading-relaxed">
-                          {msg.isDeleted ? (
-                            <i className="text-gray-400">
-                              This message has been deleted
-                            </i>
-                          ) : (
-                            msg.text
-                          )}
-                        </p>
-                        {hoveredMessage === index && (
-                          <div className="absolute flex justify-center items-center top-1/2 -right-7 -translate-y-1/2 h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer">
-                            <BsThreeDots size={16} color="#555" />
+                      {/* Recipient's file message */}
+                      {msg.type === "file" ? (
+                        <div className="bg-white relative flex justify-between items-center gap-3 p-3 rounded-lg shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="text-2xl text-[#01aa85]">
+                              <LuFile className="shrink-0" />
+                            </div>
+                            <div className="flex flex-col text-sm max-w-[140px]">
+                              <span className="font-medium text-gray-800 truncate">
+                                {msg.name}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {formatBytes(msg.size)}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                          {msg.status === "done" && (
+                            <button
+                              onClick={() =>
+                                handleDownloadFile(msg.fileURL, msg.name)
+                              }
+                              className="ml-auto text-[#01aa85] hover:bg-[#e6f7f3] p-1 rounded-full"
+                            >
+                              <LuDownload size={18} />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        // Regular text message
+                        <div className="relative bg-white px-4 py-2 rounded-lg break-all shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-left">
+                          <p className="text-sx text-[#2A3D39] leading-relaxed">
+                            {msg.isDeleted ? (
+                              <i className="text-gray-400">
+                                This message has been deleted
+                              </i>
+                            ) : (
+                              msg.text
+                            )}
+                          </p>
+                          {hoveredMessage === index && (
+                            <div className="absolute flex justify-center items-center top-1/2 -right-7 -translate-y-1/2 h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer">
+                              <BsThreeDots size={16} color="#555" />
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <p className="text-gray-400 text-xs text-left mt-1">
                         {formatTimestamp(msg.timestamp)}
                       </p>
@@ -232,6 +489,17 @@ const MessageList = ({
             </div>
           ))}
         </div>
+        {isDragging && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 pointer-events-none transition-all duration-300">
+            <div className="flex flex-col items-center gap-2 bg-white p-6 rounded-xl shadow-2xl text-center text-[#01aa85] font-semibold animate-fade-in max-w-sm w-full">
+              <div className="text-4xl">
+                <LucideUploadCloud className="animate-bounce" />
+              </div>
+              <div>Drop files here to submit</div>
+              <div className="text-sm text-gray-500">Maximum 100MB</div>
+            </div>
+          </div>
+        )}
       </section>
       <div className="sticky lg:bottom-0 bottom-[20px] p-3 h-fit w-full">
         <div>
@@ -246,6 +514,14 @@ const MessageList = ({
               placeholder="Write your message"
               className="h-full text-[#2A3D39] outline-none text-[16px] pl-3 pr-[50px] rounded-lg w-[100%]"
             />
+            {/* Add file upload button */}
+            <button
+              type="button"
+              onClick={handleFileSelect}
+              className="flex items-center justify-center absolute right-12 p-2 rounded-full hover:bg-[#e6f7f3]"
+            >
+              <LucideUploadCloud color="#01AA85" size={18} />
+            </button>
             <button
               type="submit"
               className="flex items-center justify-center absolute right-3 p-2 rounded-full bg-[#D9f2ed] hover:bg-[#c8eae3]"
@@ -257,24 +533,22 @@ const MessageList = ({
       </div>
       <RemoveMessageDialogComponent
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)} // Đóng dialog
+        onClose={() => setIsDialogOpen(false)}
         onConfirm={async (selectedOption) => {
           if (selectedMessage) {
             if (selectedOption === "all") {
-              // Xóa tin nhắn với mọi người
               await deleteMessage(
                 selectedMessage.chatId,
                 selectedMessage.messageId
               );
             } else if (selectedOption === "you") {
-              // Xóa tin nhắn chỉ với bạn (ẩn khỏi giao diện)
               setMessages((prevMessages) =>
                 prevMessages.filter(
                   (msg) => msg.messageId !== selectedMessage.messageId
                 )
               );
             }
-            setIsDialogOpen(false); // Đóng dialog sau khi xử lý
+            setIsDialogOpen(false);
           }
         }}
       />

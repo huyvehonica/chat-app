@@ -18,7 +18,7 @@ import {
 } from "firebase/firestore";
 import { serverTimestamp, update } from "firebase/database";
 import { getDatabase, ref, set, onValue, get, push } from "firebase/database";
-
+import { getStorage } from "firebase/storage";
 import { LuMessageSquareText } from "react-icons/lu";
 
 // TODO: Add SDKs for Firebase products that you want to use
@@ -173,3 +173,4 @@ export const updateCallStatus = async (callId, status) => {
 export const endCall = async (callId) => {
   await updateCallStatus(callId, "ended");
 };
+export const storage = getStorage(app);

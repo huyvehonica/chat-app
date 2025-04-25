@@ -67,7 +67,6 @@ const ChatBox = ({ selectedUser, onBack }) => {
   };
   const handleVideoCall = async () => {
     if (!auth.currentUser) {
-      console.error("User is not authenticated");
       return;
     }
 
@@ -86,10 +85,11 @@ const ChatBox = ({ selectedUser, onBack }) => {
       console.error("Error initiating video call:", error);
     }
   };
+
   return (
     <>
       {selectedUser ? (
-        <section className="flex flex-col items-start justify-start h-screen w-[100%] background-image">
+        <section className="relative flex flex-col items-start justify-start h-screen w-[100%] background-image">
           <header className=" border-b border-gray-200 w-[100%] h-[81px] m:h-fit p-4 bg-white">
             <main className="  flex items-center gap-3 jus">
               <button
@@ -122,6 +122,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
               </div>
             </main>
           </header>
+
           <MessageList
             messages={sortedMessages}
             senderEmail={senderEmail}
