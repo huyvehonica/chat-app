@@ -174,3 +174,173 @@ export const endCall = async (callId) => {
   await updateCallStatus(callId, "ended");
 };
 export const storage = getStorage(app);
+/////////////////////////////////Group chat
+// Thêm vào firebase.js
+
+// Hàm tạo nhóm mới
+export const createGroupChat = async (
+  groupName,
+  creatorUid,
+  memberUids = []
+) => {
+  const groupId = `group-${Date.now()}`;
+  const members = [creatorUid, ...memberUids].reduce((acc, uid) => {
+    acc[uid] = {
+      role: uid === creatorUid ? "admin" : "member",
+      joinedAt: serverTimestamp(),
+    };
+    return acc;
+  }, {});
+
+  const groupData = {
+    id: groupId,
+    name: groupName,
+    createdBy: creatorUid,
+    createdAt: serverTimestamp(),
+    members,
+    type: "group",
+    lastMessage: "Group created",
+    lastMessageSenderId: creatorUid,
+    lastMessageTimestamp: serverTimestamp(),
+  };
+
+  // Lưu thông tin nhóm trong Realtime Database
+  const groupRef = ref(rtdb, `groups/${groupId}`);
+  await set(groupRef, groupData);
+
+  return groupId;
+};
+
+// Hàm lắng nghe danh sách nhóm mà người dùng là thành viên
+export const listenForGroups = (setGroups) => {
+  const currentUid = auth?.currentUser?.uid;
+  if (!currentUid) return () => {};
+
+  console.log("Listening for groups for user:", currentUid);
+
+  const groupsRef = ref(rtdb, "groups");
+
+  const unsubscribe = onValue(groupsRef, (snapshot) => {
+    const groupList = [];
+
+    snapshot.forEach((childSnapshot) => {
+      const group = childSnapshot.val();
+
+      // Kiểm tra xem người dùng hiện tại có phải là thành viên không
+      if (group.members && group.members[currentUid]) {
+        groupList.push(group);
+      }
+    });
+
+    console.log("Group list:", groupList);
+    setGroups(groupList);
+  });
+
+  return unsubscribe;
+};
+
+// Hàm lắng nghe tin nhắn trong nhóm
+export const listenForGroupMessages = (groupId, setMessages) => {
+  const messagesRef = ref(rtdb, `groups/${groupId}/messages`);
+
+  const unsubscribe = onValue(messagesRef, (snapshot) => {
+    const messages = [];
+    snapshot.forEach((childSnapshot) => {
+      messages.push({
+        messageId: childSnapshot.key,
+        ...childSnapshot.val(),
+      });
+    });
+
+    setMessages(messages);
+  });
+
+  return unsubscribe;
+};
+
+// Hàm gửi tin nhắn trong nhóm
+export const sendGroupMessage = async (messageText, groupId) => {
+  if (!messageText || !groupId) {
+    console.error("sendGroupMessage error: Missing parameters", {
+      messageText,
+      groupId,
+    });
+    return;
+  }
+
+  const currentUserId = auth.currentUser.uid;
+
+  // Cập nhật thông tin tin nhắn mới nhất của nhóm
+  const groupRef = ref(rtdb, `groups/${groupId}`);
+  await update(groupRef, {
+    lastMessage: messageText,
+    lastMessageSenderId: currentUserId,
+    lastMessageTimestamp: serverTimestamp(),
+  });
+
+  // Thêm tin nhắn mới vào danh sách tin nhắn của nhóm
+  const messagesRef = ref(rtdb, `groups/${groupId}/messages`);
+  const newMessageRef = push(messagesRef);
+  await set(newMessageRef, {
+    text: messageText,
+    sender: currentUserId,
+    timestamp: serverTimestamp(),
+  });
+};
+
+// Hàm thêm thành viên vào nhóm
+export const addMemberToGroup = async (groupId, userUid) => {
+  const memberRef = ref(rtdb, `groups/${groupId}/members/${userUid}`);
+  await set(memberRef, {
+    role: "member",
+    joinedAt: serverTimestamp(),
+  });
+};
+
+// Hàm xóa thành viên khỏi nhóm
+export const removeMemberFromGroup = async (groupId, userUid) => {
+  const memberRef = ref(rtdb, `groups/${groupId}/members/${userUid}`);
+  await set(memberRef, null);
+};
+
+// Hàm lấy thông tin của tất cả thành viên trong nhóm
+export const getGroupMembers = async (groupId) => {
+  const groupRef = ref(rtdb, `groups/${groupId}`);
+  const snapshot = await get(groupRef);
+
+  if (snapshot.exists()) {
+    const group = snapshot.val();
+    const memberUids = group.members ? Object.keys(group.members) : [];
+
+    const members = [];
+    for (const uid of memberUids) {
+      const userRef = ref(rtdb, `users/${uid}`);
+      const userSnapshot = await get(userRef);
+
+      if (userSnapshot.exists()) {
+        members.push({
+          uid,
+          ...userSnapshot.val(),
+          role: group.members[uid].role,
+        });
+      }
+    }
+
+    return members;
+  }
+
+  return [];
+};
+
+// Hàm kiểm tra người dùng có phải là admin của nhóm không
+export const isGroupAdmin = async (groupId, userUid) => {
+  const memberRef = ref(rtdb, `groups/${groupId}/members/${userUid}`);
+  const snapshot = await get(memberRef);
+
+  if (snapshot.exists()) {
+    const memberData = snapshot.val();
+    return memberData.role === "admin";
+  }
+
+  return false;
+};

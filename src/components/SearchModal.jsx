@@ -98,7 +98,7 @@ const SearchModal = ({ startChat }) => {
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
-            className="fixed inset-0 z-[100] flex justify-center items-center "
+            className="fixed inset-0  bg-black/50 z-[100] flex justify-center items-center "
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.3 } }}
