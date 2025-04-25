@@ -160,7 +160,7 @@ const SearchModal = ({ startChat }) => {
                           >
                             <img
                               src={user?.image || imageDefault}
-                              className="h-[40px] w-[40px] rounded-full"
+                              className="w-11 h-11 object-cover rounded-full"
                               alt=""
                             />
                             <span>

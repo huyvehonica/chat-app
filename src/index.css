@@ -15,6 +15,9 @@
 button {
   cursor: pointer;
 }
+img {
+  cursor: pointer;
+}
 .background-image {
   background-image: url("assets/background.png");
   background-position: center;

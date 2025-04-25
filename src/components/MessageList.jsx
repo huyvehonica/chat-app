@@ -15,6 +15,7 @@ import { LucideUploadCloud } from "lucide-react";
 import { LuFile, LuDownload } from "react-icons/lu";
 import { CgSpinner } from "react-icons/cg";
 import toast from "react-hot-toast";
+import RecipientMessage from "./RecipientMessage";
 
 const MessageList = ({
   messages,
@@ -35,6 +36,7 @@ const MessageList = ({
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({});
   const [fileInputRef] = useState(React.createRef());
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const chatBoxRef = useRef(null);
 
@@ -64,7 +66,11 @@ const MessageList = ({
     const messageRef = dbRef(rtdb, `chats/${chatId}/messages/${messageId}`);
     await update(messageRef, { isDeleted: true });
   };
-
+  const isImageFile = (fileName) => {
+    const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"];
+    const extension = fileName.split(".").pop().toLowerCase();
+    return imageExtensions.includes(extension);
+  };
   // Handle file upload to Firebase Storage
   const uploadFileToFirebase = async (file, messageId) => {
     try {
@@ -101,8 +107,9 @@ const MessageList = ({
             rtdb,
             `chats/${chatId}/messages/${messageId}`
           );
+          const isImage = isImageFile(file.name);
           await update(messageRef, {
-            type: "file",
+            type: isImage ? "image" : "file",
             name: file.name,
             size: file.size,
             fileURL: downloadURL,
@@ -112,7 +119,12 @@ const MessageList = ({
           });
 
           // Update local message state
-          updateMessageStatus(messageId, "done", downloadURL);
+          updateMessageStatus(
+            messageId,
+            "done",
+            downloadURL,
+            isImage ? "image" : "file"
+          );
         }
       );
     } catch (error) {
@@ -121,10 +133,12 @@ const MessageList = ({
     }
   };
 
-  const updateMessageStatus = (id, status, fileURL = null) => {
+  const updateMessageStatus = (id, status, fileURL = null, type = null) => {
     setMessages((prev) =>
       prev.map((msg) =>
-        msg.messageId === id ? { ...msg, status, fileURL } : msg
+        msg.messageId === id
+          ? { ...msg, status, fileURL, ...(type ? { type } : {}) }
+          : msg
       )
     );
   };
@@ -140,7 +154,7 @@ const MessageList = ({
     const messageId = Date.now().toString();
     const fileMessage = {
       messageId,
-      type: "file",
+      type: isImageFile(file.name) ? "image" : "file",
       name: file.name,
       size: file.size,
       sender: senderEmail,
@@ -229,7 +243,13 @@ const MessageList = ({
       </div>
     );
   };
+  const handleImageClick = (imageURL) => {
+    setSelectedImage(imageURL);
+  };
 
+  const closeImageModal = () => {
+    setSelectedImage(null);
+  };
   return (
     <main className="custom-scrollbar relative h-full w-[100%] flex flex-col justify-between">
       {/* Hidden file input for manual file selection */}
@@ -267,7 +287,44 @@ const MessageList = ({
                   <div className="flex justify-end gap-1 max-w-[70%] h-auto text-sx text-left">
                     <div>
                       {/* FILE MESSAGE RENDERING */}
-                      {msg.type === "file" ? (
+                      {msg.type === "image" ? (
+                        <div className="relative">
+                          <img
+                            src={msg.fileURL}
+                            alt={msg.name}
+                            className="max-w-[250px] max-h-[300px] rounded-lg shadow-sm object-cover"
+                            onLoad={() => {
+                              // Scroll to bottom when image loads
+                              if (scrollRef.current) {
+                                scrollRef.current.scrollTop =
+                                  scrollRef.current.scrollHeight;
+                              }
+                            }}
+                            onClick={() => handleImageClick(msg.fileURL)}
+                          />
+                          <div className="absolute bottom-2 right-2 flex gap-1">
+                            <button
+                              onClick={() =>
+                                handleDownloadFile(msg.fileURL, msg.name)
+                              }
+                              className="bg-white/80 hover:bg-white p-1 rounded-full text-[#01aa85]"
+                            >
+                              <LuDownload size={18} />
+                            </button>
+                          </div>
+                          {msg.status === "uploading" &&
+                            uploadProgress[msg.messageId] && (
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-lg">
+                                <div className="bg-white rounded-full p-2">
+                                  <CgSpinner
+                                    className="animate-spin text-[#01aa85]"
+                                    size={24}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      ) : msg.type === "file" ? (
                         <div className="bg-white relative flex justify-between items-center gap-3 p-3 rounded-lg shadow-sm">
                           <div className="flex items-center gap-2">
                             <div className="text-2xl text-[#01aa85]">
@@ -418,6 +475,7 @@ const MessageList = ({
                           )}
                         </div>
                       )}
+                      {}
                       <p className="text-gray-400 text-xs text-right mt-1">
                         {formatTimestamp(msg.timestamp)}
                       </p>
@@ -425,66 +483,18 @@ const MessageList = ({
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-start w-full mb-4">
-                  <span className="flex gap-1 max-w-[70%] h-auto text-sx text-right">
-                    <img
-                      src={selectedUser?.image || imageDefault}
-                      alt="defaultImage"
-                      className="h-11 w-11 object-cover rounded-full"
-                    />
-                    <div>
-                      {/* Recipient's file message */}
-                      {msg.type === "file" ? (
-                        <div className="bg-white relative flex justify-between items-center gap-3 p-3 rounded-lg shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="text-2xl text-[#01aa85]">
-                              <LuFile className="shrink-0" />
-                            </div>
-                            <div className="flex flex-col text-sm max-w-[140px]">
-                              <span className="font-medium text-gray-800 truncate">
-                                {msg.name}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {formatBytes(msg.size)}
-                              </span>
-                            </div>
-                          </div>
-                          {msg.status === "done" && (
-                            <button
-                              onClick={() =>
-                                handleDownloadFile(msg.fileURL, msg.name)
-                              }
-                              className="ml-auto text-[#01aa85] hover:bg-[#e6f7f3] p-1 rounded-full"
-                            >
-                              <LuDownload size={18} />
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        // Regular text message
-                        <div className="relative bg-white px-4 py-2 rounded-lg break-all shadow-sm break-words whitespace-pre-wrap max-w-[75vw] text-left">
-                          <p className="text-sx text-[#2A3D39] leading-relaxed">
-                            {msg.isDeleted ? (
-                              <i className="text-gray-400">
-                                This message has been deleted
-                              </i>
-                            ) : (
-                              msg.text
-                            )}
-                          </p>
-                          {hoveredMessage === index && (
-                            <div className="absolute flex justify-center items-center top-1/2 -right-7 -translate-y-1/2 h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer">
-                              <BsThreeDots size={16} color="#555" />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <p className="text-gray-400 text-xs text-left mt-1">
-                        {formatTimestamp(msg.timestamp)}
-                      </p>
-                    </div>
-                  </span>
-                </div>
+                <RecipientMessage
+                  msg={msg}
+                  selectedUser={selectedUser}
+                  handleDownloadFile={handleDownloadFile}
+                  formatBytes={formatBytes}
+                  index={index}
+                  hoveredMessage={hoveredMessage}
+                  setHoveredMessage={setHoveredMessage}
+                  selectedImage={selectedImage}
+                  handleImageClick={handleImageClick}
+                  closeImageModal={closeImageModal}
+                />
               )}
             </div>
           ))}
@@ -501,6 +511,24 @@ const MessageList = ({
           </div>
         )}
       </section>
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+          onClick={closeImageModal}
+        >
+          <img
+            src={selectedImage}
+            alt="Full Screen"
+            className="max-w-full max-h-full"
+          />
+          <button
+            className="absolute top-5 right-5 text-white text-2xl"
+            onClick={closeImageModal}
+          >
+            &times;
+          </button>
+        </div>
+      )}
       <div className="sticky lg:bottom-0 bottom-[20px] p-3 h-fit w-full">
         <div>
           <form
