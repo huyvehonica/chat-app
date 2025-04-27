@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+
 import { LuDownload, LuFile } from "react-icons/lu";
 import imageDefault from "../assets/default.jpg";
 import { BsThreeDots } from "react-icons/bs";
+import { ref, get } from "firebase/database"; // Import Firebase Realtime Database
+import { rtdb } from "../firebase/firebase"; // Import Firebase instance
 
 const RecipientMessage = ({
   msg,
@@ -13,13 +16,31 @@ const RecipientMessage = ({
   handleImageClick,
   setHoveredMessage,
 }) => {
+  const [senderInfo, setSenderInfo] = useState(null);
+
+  // Lấy thông tin người gửi từ Firebase
+  useEffect(() => {
+    const fetchSenderInfo = async () => {
+      if (msg.sender) {
+        const userRef = ref(rtdb, `users/${msg.sender}`);
+        const snapshot = await get(userRef);
+        if (snapshot.exists()) {
+          setSenderInfo(snapshot.val());
+        } else {
+          setSenderInfo({ fullName: "Unknown User", image: imageDefault });
+        }
+      }
+    };
+    console.log("Sender ID:", senderInfo);
+    fetchSenderInfo();
+  }, [msg.sender]);
   return (
     <div className="flex flex-col items-start w-full mb-4">
       <span className="flex gap-1 max-w-[70%] h-auto text-sx text-right">
         <img
-          src={selectedUser?.image || imageDefault}
+          src={senderInfo?.image || imageDefault}
           alt="defaultImage"
-          className="h-11 w-11 object-cover rounded-full"
+          className="h-10 w-10 object-cover rounded-full"
         />
         <div>
           {/* Recipient's file message */}
