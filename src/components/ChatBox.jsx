@@ -7,29 +7,55 @@ import { useState, useEffect } from "react";
 import {
   auth,
   initiateCall,
+  listenForGroupMessages,
   listenForMessages,
+  sendGroupMessage,
   sendMessage,
 } from "../firebase/firebase";
 import logo from "../assets/logo.png"; // Assuming you have a logo image
 import CallVideoIcon from "./icons/CallVideoIcon";
 import MessageList from "./MessageList";
 import { CiVideoOn } from "react-icons/ci";
+import { HiOutlineUserGroup } from "react-icons/hi2";
+import chatData from "../data/chatData";
 
 const ChatBox = ({ selectedUser, onBack }) => {
   const [messages, setMessages] = useState([]);
   const [sendMessageText, setSendMessageText] = useState("");
+  const isGroup = selectedUser?.type === "group";
+  const groupData = isGroup ? selectedUser.data : null;
+  const userData = isGroup ? null : selectedUser;
 
   const scrollRef = useRef(null);
-  const chatId =
-    auth?.currentUser?.uid < selectedUser?.uid
-      ? `${auth?.currentUser?.uid}-${selectedUser?.uid}`
-      : `${selectedUser?.uid}-${auth?.currentUser?.uid}`;
+  const chatId = isGroup
+    ? groupData?.id
+    : auth?.currentUser?.uid < selectedUser?.uid
+    ? `${auth?.currentUser?.uid}-${selectedUser?.uid}`
+    : `${selectedUser?.uid}-${auth?.currentUser?.uid}`;
   const user1 = auth?.currentUser?.uid;
   const user2 = selectedUser?.uid;
   const senderEmail = auth?.currentUser?.uid;
+
   useEffect(() => {
-    listenForMessages(chatId, setMessages); // Load chat data from JSON file
-  }, [chatId]);
+    if (!chatId) return;
+
+    console.log("Chat ID:", chatId, groupData);
+
+    let unsubscribe;
+    if (isGroup) {
+      // Lắng nghe tin nhắn nhóm
+      unsubscribe = listenForGroupMessages(chatId, setMessages);
+    } else {
+      // Lắng nghe tin nhắn cá nhân
+      unsubscribe = listenForMessages(chatId, setMessages);
+    }
+
+    // Hủy đăng ký khi component unmount
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [chatId, isGroup]);
+
   useEffect(() => {
     if (scrollRef.current) {
       setTimeout(() => {
@@ -60,7 +86,12 @@ const ChatBox = ({ selectedUser, onBack }) => {
     setSendMessageText("");
 
     try {
-      await sendMessage(sendMessageText, chatId, user1, user2);
+      if (isGroup) {
+        // Send message to group
+        await sendGroupMessage(sendMessageText, chatId);
+      } else {
+        await sendMessage(sendMessageText, chatId, user1, user2);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -99,26 +130,38 @@ const ChatBox = ({ selectedUser, onBack }) => {
                 <RiArrowLeftLine color="#01aa85" size={24} />
               </button>
               <div className="flex items-center gap-3">
-                <span>
+                {isGroup ? (
+                  <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center">
+                    <HiOutlineUserGroup className="text-teal-600 text-2xl" />
+                  </div>
+                ) : (
                   <img
-                    src={selectedUser?.image || imageDefault}
+                    src={userData?.image || imageDefault}
                     className="w-11 h-11 object-cover rounded-full"
+                    alt="User avatar"
                   />
-                </span>
+                )}
                 <span>
                   <h3 className="font-semibold text-[#2A3D39] text-lg">
-                    {selectedUser?.fullName || "Chatfrik User"}
+                    {isGroup
+                      ? groupData?.name || "Group Chat"
+                      : userData?.fullName || "Chatfrik User"}
                   </h3>
                   <p className="font-light text-[#2A3D39] text-lsm">
-                    {" "}
-                    {selectedUser?.username || "Chatfrik User"}
+                    {isGroup
+                      ? `${
+                          Object.keys(groupData?.members || {}).length
+                        } members`
+                      : userData?.username || "Chatfrik User"}
                   </p>
                 </span>
               </div>
               <div className="flex items-center gap-3 ml-auto">
-                <button className="p-2 rounded-full hover:bg-[#D9F2ED] hidden md:block">
-                  <CiVideoOn size={22} onClick={handleVideoCall} />
-                </button>
+                {!isGroup && (
+                  <button className="p-2 rounded-full hover:bg-[#D9F2ED] hidden md:block">
+                    <CiVideoOn size={22} onClick={handleVideoCall} />
+                  </button>
+                )}
               </div>
             </main>
           </header>

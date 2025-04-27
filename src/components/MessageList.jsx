@@ -9,7 +9,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
-import { rtdb, storage } from "../firebase/firebase";
+import { listenForGroupMessages, rtdb, storage } from "../firebase/firebase";
 import { RemoveMessageDialogComponent } from "./RemoveMessageDialogComponent";
 import { LucideUploadCloud } from "lucide-react";
 import { LuFile, LuDownload } from "react-icons/lu";
@@ -45,7 +45,12 @@ const MessageList = ({
   };
 
   const [hoveredMessage, setHoveredMessage] = useState(null);
-
+  useEffect(() => {
+    if (selectedUser?.type === "group") {
+      const unsubscribe = listenForGroupMessages(chatId, setMessages);
+      return () => unsubscribe();
+    }
+  }, [chatId, selectedUser]);
   useEffect(() => {
     if (scrollRef.current) {
       setTimeout(() => {
@@ -279,27 +284,17 @@ const MessageList = ({
               onMouseLeave={() => setHoveredMessage(null)}
             >
               {msg?.sender === senderEmail ? (
-                <div
-                  className="flex flex-col items-end justify-end w-full mb-4"
-                  onMouseEnter={() => setHoveredMessage(index)}
-                  onMouseLeave={() => setHoveredMessage(null)}
-                >
+                // Tin nhắn của người gửi hiện tại
+                <div className="flex flex-col items-end justify-end w-full mb-4">
                   <div className="flex justify-end gap-1 max-w-[70%] h-auto text-sx text-left">
                     <div>
-                      {/* FILE MESSAGE RENDERING */}
+                      {/* Hiển thị tin nhắn */}
                       {msg.type === "image" ? (
                         <div className="relative">
                           <img
                             src={msg.fileURL}
                             alt={msg.name}
                             className="max-w-[250px] max-h-[300px] rounded-lg shadow-sm object-cover"
-                            onLoad={() => {
-                              // Scroll to bottom when image loads
-                              if (scrollRef.current) {
-                                scrollRef.current.scrollTop =
-                                  scrollRef.current.scrollHeight;
-                              }
-                            }}
                             onClick={() => handleImageClick(msg.fileURL)}
                           />
                           <div className="absolute bottom-2 right-2 flex gap-1">
@@ -312,24 +307,11 @@ const MessageList = ({
                               <LuDownload size={18} />
                             </button>
                           </div>
-                          {msg.status === "uploading" &&
-                            uploadProgress[msg.messageId] && (
-                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-lg">
-                                <div className="bg-white rounded-full p-2">
-                                  <CgSpinner
-                                    className="animate-spin text-[#01aa85]"
-                                    size={24}
-                                  />
-                                </div>
-                              </div>
-                            )}
                         </div>
                       ) : msg.type === "file" ? (
                         <div className="bg-white relative flex justify-between items-center gap-3 p-3 rounded-lg shadow-sm">
                           <div className="flex items-center gap-2">
-                            <div className="text-2xl text-[#01aa85]">
-                              <LuFile className="shrink-0" />
-                            </div>
+                            <LuFile className="text-2xl text-[#01aa85]" />
                             <div className="flex flex-col text-sm max-w-[140px]">
                               <span className="font-medium text-gray-800 truncate">
                                 {msg.name}
@@ -337,32 +319,18 @@ const MessageList = ({
                               <span className="text-xs text-gray-500">
                                 {formatBytes(msg.size)}
                               </span>
-                              {msg.status === "uploading" &&
-                                uploadProgress[msg.messageId] &&
-                                renderProgress(uploadProgress[msg.messageId])}
                             </div>
                           </div>
-                          <div className="ml-auto text-[#01aa85]">
-                            {msg.status === "uploading" ? (
-                              <CgSpinner className="animate-spin" size={20} />
-                            ) : msg.status === "done" ? (
-                              <button
-                                onClick={() =>
-                                  handleDownloadFile(msg.fileURL, msg.name)
-                                }
-                                className="hover:bg-[#e6f7f3] p-1 rounded-full"
-                              >
-                                <LuDownload size={18} />
-                              </button>
-                            ) : (
-                              <span className="text-red-500 text-xs">
-                                Error
-                              </span>
-                            )}
-                          </div>
+                          <button
+                            onClick={() =>
+                              handleDownloadFile(msg.fileURL, msg.name)
+                            }
+                            className="hover:bg-[#e6f7f3] p-1 rounded-full"
+                          >
+                            <LuDownload size={18} />
+                          </button>
                         </div>
                       ) : (
-                        // REGULAR TEXT MESSAGE
                         <div className="bg-white relative flex justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
                           {editingMessageId === msg.messageId ? (
                             <input
@@ -411,71 +379,8 @@ const MessageList = ({
                               )}
                             </p>
                           )}
-
-                          {hoveredMessage === index && (
-                            <>
-                              <div
-                                className="absolute left-[-30px] top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer"
-                                onClick={() => toggleMenu(index)}
-                              >
-                                <BsThreeDots size={16} color="#555" />
-                              </div>
-                              {activeMenu === index && (
-                                <div className="absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 w-40 z-10">
-                                  <ul className="text-sm text-gray-700">
-                                    {msg.isDeleted ? (
-                                      <li
-                                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                                        onClick={() => {
-                                          // Handle permanent delete
-                                          setActiveMenu(null);
-                                          setIsDialogOpen(true);
-                                        }}
-                                      >
-                                        Remove
-                                      </li>
-                                    ) : (
-                                      <>
-                                        <li
-                                          className="p-2 hover:bg-gray-100 cursor-pointer"
-                                          onClick={() =>
-                                            console.log("Reply clicked")
-                                          }
-                                        >
-                                          Reply
-                                        </li>
-                                        <li
-                                          className="p-2 hover:bg-gray-100 cursor-pointer"
-                                          onClick={() => {
-                                            setEditingMessageId(msg.messageId);
-                                            setEditText(msg.text);
-                                            setActiveMenu(null);
-                                          }}
-                                        >
-                                          Edit
-                                        </li>
-                                        <li
-                                          className="p-2 hover:bg-gray-100 cursor-pointer"
-                                          onClick={() => {
-                                            setSelectedMessage({
-                                              chatId,
-                                              messageId: msg.messageId,
-                                            });
-                                            setIsDialogOpen(true);
-                                          }}
-                                        >
-                                          Delete
-                                        </li>
-                                      </>
-                                    )}
-                                  </ul>
-                                </div>
-                              )}
-                            </>
-                          )}
                         </div>
                       )}
-                      {}
                       <p className="text-gray-400 text-xs text-right mt-1">
                         {formatTimestamp(msg.timestamp)}
                       </p>
@@ -483,18 +388,76 @@ const MessageList = ({
                   </div>
                 </div>
               ) : (
-                <RecipientMessage
-                  msg={msg}
-                  selectedUser={selectedUser}
-                  handleDownloadFile={handleDownloadFile}
-                  formatBytes={formatBytes}
-                  index={index}
-                  hoveredMessage={hoveredMessage}
-                  setHoveredMessage={setHoveredMessage}
-                  selectedImage={selectedImage}
-                  handleImageClick={handleImageClick}
-                  closeImageModal={closeImageModal}
-                />
+                // Tin nhắn của người khác
+                <div className="flex flex-col items-start justify-start w-full mb-4">
+                  {selectedUser?.type === "group" && (
+                    <p className="text-xs text-gray-500 mb-1">
+                      {msg.senderName || msg.sender}
+                    </p>
+                  )}
+                  <div className="flex justify-start gap-1 max-w-[70%] h-auto text-sx text-left">
+                    <div>
+                      {/* Hiển thị tin nhắn */}
+                      {msg.type === "image" ? (
+                        <div className="relative">
+                          <img
+                            src={msg.fileURL}
+                            alt={msg.name}
+                            className="max-w-[250px] max-h-[300px] rounded-lg shadow-sm object-cover"
+                            onClick={() => handleImageClick(msg.fileURL)}
+                          />
+                          <div className="absolute bottom-2 right-2 flex gap-1">
+                            <button
+                              onClick={() =>
+                                handleDownloadFile(msg.fileURL, msg.name)
+                              }
+                              className="bg-white/80 hover:bg-white p-1 rounded-full text-[#01aa85]"
+                            >
+                              <LuDownload size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : msg.type === "file" ? (
+                        <div className="bg-[#f1f1f1] relative flex justify-between items-center gap-3 p-3 rounded-lg shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <LuFile className="text-2xl text-[#01aa85]" />
+                            <div className="flex flex-col text-sm max-w-[140px]">
+                              <span className="font-medium text-gray-800 truncate">
+                                {msg.name}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {formatBytes(msg.size)}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() =>
+                              handleDownloadFile(msg.fileURL, msg.name)
+                            }
+                            className="hover:bg-[#e6f7f3] p-1 rounded-full"
+                          >
+                            <LuDownload size={18} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="bg-[#f1f1f1] relative flex justify-start px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
+                          <p className="text-sx text-[#2A3D39] leading-relaxed">
+                            {msg.isDeleted ? (
+                              <i className="text-gray-400">
+                                Message has been deleted
+                              </i>
+                            ) : (
+                              msg.text
+                            )}
+                          </p>
+                        </div>
+                      )}
+                      <p className="text-gray-400 text-xs text-left mt-1">
+                        {formatTimestamp(msg.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           ))}

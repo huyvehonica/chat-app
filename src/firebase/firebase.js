@@ -251,11 +251,11 @@ export const listenForGroupMessages = (groupId, setMessages) => {
         ...childSnapshot.val(),
       });
     });
-
+    messages.sort((a, b) => a.timestamp - b.timestamp);
     setMessages(messages);
   });
 
-  return unsubscribe;
+  return () => unsubscribe();
 };
 
 // Hàm gửi tin nhắn trong nhóm
@@ -269,6 +269,15 @@ export const sendGroupMessage = async (messageText, groupId) => {
   }
 
   const currentUserId = auth.currentUser.uid;
+
+  // Lấy tên người dùng từ Realtime Database
+  const userRef = ref(rtdb, `users/${currentUserId}`);
+  const userSnapshot = await get(userRef);
+
+  let currentUserName = "Unknown User"; // Giá trị mặc định
+  if (userSnapshot.exists()) {
+    currentUserName = userSnapshot.val().fullName || "Unknown User";
+  }
 
   // Cập nhật thông tin tin nhắn mới nhất của nhóm
   const groupRef = ref(rtdb, `groups/${groupId}`);
@@ -284,6 +293,7 @@ export const sendGroupMessage = async (messageText, groupId) => {
   await set(newMessageRef, {
     text: messageText,
     sender: currentUserId,
+    senderName: currentUserName, // Lưu tên người gửi
     timestamp: serverTimestamp(),
   });
 };
