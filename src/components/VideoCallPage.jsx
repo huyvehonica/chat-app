@@ -11,7 +11,10 @@ import {
   initiateCall,
   updateCallStatus,
   endCall,
+  getCurrentUserProfile,
+  rtdb,
 } from "../firebase/firebase";
+import { getDatabase, ref, get } from "firebase/database";
 
 const SDKAppID = 20022132; // Replace with your actual AppID
 const SDKSecretKey =
@@ -24,6 +27,8 @@ const VideoCallPage = () => {
   const callId = searchParams.get("callId");
   const callerUserID = searchParams.get("callerUserID");
   const calleeUserID = searchParams.get("calleeUserID");
+  const isGroup = searchParams.get("isGroup") === "true";
+  const groupId = searchParams.get("groupId");
 
   const [initSuccess, setInitSuccess] = useState(false);
   const [currentUserID, setCurrentUserID] = useState("");
@@ -37,9 +42,12 @@ const VideoCallPage = () => {
         navigate("/login");
         return;
       }
-
+      console.log("Authenticated user:", auth.currentUser);
       try {
         const userID = auth.currentUser.uid;
+
+        console.error("User ID:", userID);
+
         setCurrentUserID(userID);
 
         const { userSig } = GenerateTestUserSig.genTestUserSig({
@@ -53,6 +61,18 @@ const VideoCallPage = () => {
           userSig,
           SDKAppID,
         });
+        const userProfile = await getCurrentUserProfile();
+        await TUICallKitServer.setSelfInfo({
+          nickName: userProfile.fullName || "Unknown",
+          avatar:
+            userProfile.photoURL ||
+            "https://default-avatar-url.com/default.png",
+        });
+        try {
+          TUICallKitServer.enableFloatWindow(true);
+        } catch (error) {
+          alert(`[TUICallKit] enableFloatWindow failed. Reason: ${error}`);
+        }
 
         setInitSuccess(true);
       } catch (err) {
@@ -75,36 +95,66 @@ const VideoCallPage = () => {
     if (!initSuccess || callInitiated) return;
 
     const makeOrJoinCall = async () => {
-      // If caller
-      if (callerUserID === auth.currentUser.uid && calleeUserID) {
-        // Create a new call if not already provided
-        if (!callId) {
-          const newCallId = await initiateCall(
-            callerUserID,
-            calleeUserID,
-            "video"
-          );
-          console.log("Created new call with ID:", newCallId);
+      try {
+        // If group call
+        if (isGroup && groupId) {
+          // Get group information
+          const groupRef = ref(rtdb, `groups/${groupId}`);
+          const groupSnapshot = await get(groupRef);
+
+          if (groupSnapshot.exists()) {
+            const groupData = groupSnapshot.val();
+
+            // Get all members except the current user
+            const memberIds = Object.keys(groupData.members || {}).filter(
+              (uid) => uid !== auth.currentUser.uid
+            );
+
+            if (memberIds.length > 0) {
+              // Call all members using TUICallKit
+              const params = {
+                userIDList: memberIds,
+                type: TUICallType.VIDEO_CALL,
+              };
+              console.log("Group Call Params:", params);
+              await TUICallKitServer.calls(params);
+            } else {
+              console.warn("No members to call in this group");
+            }
+          }
+        }
+        // Individual call logic (existing code)
+        else if (callerUserID === auth.currentUser.uid && calleeUserID) {
+          // Make the call
+          await TUICallKitServer.calls({
+            userIDList: [calleeUserID],
+            type: TUICallType.VIDEO_CALL,
+          });
+        }
+        // If receiver of a call that's been accepted
+        else if (callId && calleeUserID === auth.currentUser.uid) {
+          // Update call status to joined
+          await updateCallStatus(callId, "joined");
         }
 
-        // Make the call
-        await TUICallKitServer.calls({
-          userIDList: [calleeUserID],
-          type: TUICallType.VIDEO_CALL,
-        });
+        setCallInitiated(true);
+      } catch (error) {
+        console.error("Error making or joining call:", error);
+        alert("Failed to connect: " + error.message);
+        navigate("/chat");
       }
-      // If receiver of a call that's been accepted
-      else if (callId && calleeUserID === auth.currentUser.uid) {
-        // Update call status to joined
-        await updateCallStatus(callId, "joined");
-        // The TUICallKit should automatically handle incoming calls
-      }
-
-      setCallInitiated(true);
     };
 
     makeOrJoinCall();
-  }, [initSuccess, callerUserID, calleeUserID, callId, callInitiated]);
+  }, [
+    initSuccess,
+    callerUserID,
+    calleeUserID,
+    callId,
+    callInitiated,
+    isGroup,
+    groupId,
+  ]);
 
   // Handle call events
   useEffect(() => {
@@ -129,7 +179,9 @@ const VideoCallPage = () => {
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
-      {initSuccess && <TUICallKit />}
+      {initSuccess && (
+        <TUICallKit allowedMinimized={true} allowedFullScree={true} />
+      )}
     </div>
   );
 };

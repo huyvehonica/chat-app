@@ -20,6 +20,7 @@ import { serverTimestamp, update } from "firebase/database";
 import { getDatabase, ref, set, onValue, get, push } from "firebase/database";
 import { getStorage } from "firebase/storage";
 import { LuMessageSquareText } from "react-icons/lu";
+import { updateProfile } from "firebase/auth";
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -129,22 +130,65 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error("Error setting persistence:", error);
 });
 export { auth, db, rtdb };
-export const initiateCall = async (callerUid, receiverUid, callType) => {
-  const callId = `${callerUid}-${receiverUid}-${Date.now()}`;
+export const initiateCall = async (callerUid, calleeUid, callType) => {
+  const callId = `${callerUid}-${calleeUid}-${Date.now()}`;
   const callRef = ref(rtdb, `calls/${callId}`);
 
   await set(callRef, {
     callId,
     callerUid,
-    receiverUid,
+    calleeUid, // Make sure this property is consistently named
+    receiverUid: calleeUid, // Add this for backward compatibility
     callType,
     status: "initiating",
+    isGroupCall: false, // Explicitly mark as not a group call
     createdAt: serverTimestamp(),
   });
 
   return callId;
 };
+export const initiateGroupCall = async (callerUid, groupId, callType) => {
+  try {
+    // Get group members
+    const groupRef = ref(rtdb, `groups/${groupId}`);
+    const groupSnapshot = await get(groupRef);
 
+    if (!groupSnapshot.exists()) {
+      throw new Error("Group not found");
+    }
+
+    const groupData = groupSnapshot.val();
+    // Get all members except the caller
+    const memberUids = Object.keys(groupData.members || {}).filter(
+      (uid) => uid !== callerUid
+    );
+
+    if (memberUids.length === 0) {
+      throw new Error("No other members in the group");
+    }
+
+    // Create a unique call ID
+    const callId = `group-${groupId}-${Date.now()}`;
+    const callRef = ref(rtdb, `calls/${callId}`);
+
+    // Save call information
+    await set(callRef, {
+      callId,
+      callerUid,
+      calleeUids: memberUids, // Array of all members to be called
+      groupId,
+      isGroupCall: true,
+      callType,
+      status: "initiating",
+      createdAt: serverTimestamp(),
+    });
+
+    return { callId, memberUids };
+  } catch (error) {
+    console.error("Error initiating group call:", error);
+    throw error;
+  }
+};
 // Listen for incoming calls
 export const listenForIncomingCalls = (currentUserUid, onIncomingCall) => {
   const callsRef = ref(rtdb, "calls");
@@ -154,9 +198,26 @@ export const listenForIncomingCalls = (currentUserUid, onIncomingCall) => {
 
     snapshot.forEach((childSnapshot) => {
       const call = childSnapshot.val();
+      console.log("Detected call:", call);
 
-      // Check if this call is for the current user and is still active
-      if (call.receiverUid === currentUserUid && call.status === "initiating") {
+      // Handle individual calls - check both formats (receiverUid and calleeUid)
+      if (
+        !call.isGroupCall &&
+        (call.receiverUid === currentUserUid ||
+          call.calleeUid === currentUserUid) &&
+        call.status === "initiating"
+      ) {
+        console.log("Individual call detected for current user");
+        onIncomingCall(call);
+      }
+      // Handle group calls
+      else if (
+        call.isGroupCall &&
+        Array.isArray(call.calleeUids) &&
+        call.calleeUids.includes(currentUserUid) &&
+        call.status === "initiating"
+      ) {
+        console.log("Group call detected for current user");
         onIncomingCall(call);
       }
     });
@@ -353,4 +414,50 @@ export const isGroupAdmin = async (groupId, userUid) => {
   }
 
   return false;
+};
+export const getCurrentUserProfile = async () => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return null;
+
+  const userRef = ref(rtdb, `users/${currentUser.uid}`);
+  const snapshot = await get(userRef);
+
+  if (snapshot.exists()) {
+    return snapshot.val();
+  }
+
+  // If profile doesn't exist yet, create a default one
+  const defaultProfile = {
+    email: currentUser.email,
+    fullName: currentUser.displayName || currentUser.email.split("@")[0],
+    photoURL:
+      currentUser.photoURL || "https://default-avatar-url.com/default.png",
+    uid: currentUser.uid,
+  };
+
+  // Store the default profile
+  await set(userRef, defaultProfile);
+
+  return defaultProfile;
+};
+export const updateUserProfile = async (profileData) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("No authenticated user found");
+
+  const userRef = ref(rtdb, `users/${currentUser.uid}`);
+  await update(userRef, {
+    ...profileData,
+    updatedAt: serverTimestamp(),
+  });
+
+  // If you want to also update the auth profile
+  if (profileData.fullName) {
+    await updateProfile(currentUser, { displayName: profileData.fullName });
+  }
+
+  if (profileData.photoURL) {
+    await updateProfile(currentUser, { photoURL: profileData.photoURL });
+  }
+
+  return await getCurrentUserProfile();
 };

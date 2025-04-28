@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import {
   auth,
   initiateCall,
+  initiateGroupCall,
   listenForGroupMessages,
   listenForMessages,
   sendGroupMessage,
@@ -102,18 +103,30 @@ const ChatBox = ({ selectedUser, onBack }) => {
     }
 
     try {
-      // Create a call in Firebase
-      const callId = await initiateCall(
-        auth.currentUser.uid,
-        selectedUser.uid,
-        "video"
-      );
+      if (isGroup) {
+        // For group calls
+        const { callId, memberUids } = await initiateGroupCall(
+          auth.currentUser.uid,
+          chatId,
+          "video"
+        );
 
-      // Navigate to video call page
-      const videoCallUrl = `/video-call?callId=${callId}&callerUserID=${auth.currentUser.uid}&calleeUserID=${selectedUser.uid}`;
-      window.open(videoCallUrl, "_blank", "width=800,height=600");
+        // Navigate to video call page for group call
+        const videoCallUrl = `/video-call?callId=${callId}&callerUserID=${auth.currentUser.uid}&isGroup=true&groupId=${chatId}`;
+        window.open(videoCallUrl, "_blank", "width=800,height=600");
+      } else {
+        // For individual calls (existing code)
+        const callId = await initiateCall(
+          auth.currentUser.uid,
+          selectedUser.uid,
+          "video"
+        );
+        const videoCallUrl = `/video-call?callId=${callId}&callerUserID=${auth.currentUser.uid}&calleeUserID=${selectedUser.uid}`;
+        window.open(videoCallUrl, "_blank", "width=800,height=600");
+      }
     } catch (error) {
       console.error("Error initiating video call:", error);
+      alert("Failed to initiate call: " + error.message);
     }
   };
 
@@ -157,11 +170,9 @@ const ChatBox = ({ selectedUser, onBack }) => {
                 </span>
               </div>
               <div className="flex items-center gap-3 ml-auto">
-                {!isGroup && (
-                  <button className="p-2 rounded-full hover:bg-[#D9F2ED] hidden md:block">
-                    <CiVideoOn size={22} onClick={handleVideoCall} />
-                  </button>
-                )}
+                <button className="p-2 rounded-full hover:bg-[#D9F2ED] hidden md:block">
+                  <CiVideoOn size={22} onClick={handleVideoCall} />
+                </button>
               </div>
             </main>
           </header>

@@ -525,11 +525,7 @@ const MessageList = ({
             alt="Full Screen"
             className="max-w-full max-h-full"
           />
-          <span>
-            <h3 className="p-0 font-semibold text-[#283D39] md:text-[17px]">
-              {user?.fullName || "User"}
-            </h3>
-          </span>
+
           <button
             className="absolute top-5 right-5 text-white text-2xl"
             onClick={closeImageModal}
