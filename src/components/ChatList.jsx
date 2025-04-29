@@ -213,7 +213,7 @@ const ChatList = ({ setSelectedUser }) => {
                   className="cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] px-5 pb-3 pt-3 hover:bg-accent"
                   onClick={() => startChat(userDetails[otherUsers[0]])}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3">
                     <div className="w-11 h-11 rounded-full overflow-hidden">
                       <img
                         src={userDetails[otherUsers[0]]?.image || imageDefault}
@@ -233,7 +233,7 @@ const ChatList = ({ setSelectedUser }) => {
                       </p>
                     </span>
                   </div>
-                  <p className="p-0 font-regular text-gray-400 text-[11px] w-full text-right">
+                  <p className="p-0 font-regular text-gray-400 text-[11px] w-fit text-right">
                     {formatTimestamp(chat?.lastMessageTimestamp)}
                   </p>
                 </button>
@@ -246,13 +246,17 @@ const ChatList = ({ setSelectedUser }) => {
                 className="cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] px-5 pb-3 pt-3 hover:bg-accent"
                 onClick={() => startGroupChat(group)}
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center overflow-hidden">
-                    <HiOutlineUserGroup className="text-teal-600 text-2xl" />
+                <div className="grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3">
+                  <div className="w-11 h-11 rounded-full overflow-hidden">
+                    <img
+                      src={imageDefault}
+                      className="object-cover w-full h-full"
+                      alt="imageDefaultUser"
+                    />
                   </div>
 
                   <span>
-                    <h2 className="p-0 font-semibold text-[#2A3d39] text-left text-[17px]">
+                    <h2 className="p-0 line-clamp-1 font-semibold text-[#2A3d39] text-left text-[17px]">
                       {group?.name}
                     </h2>
                     <p className="p-0 font-light text-gray-500 text-left text-[14px] truncate max-w-[140px]">
@@ -262,7 +266,7 @@ const ChatList = ({ setSelectedUser }) => {
                     </p>
                   </span>
                 </div>
-                <p className="p-0 font-regular text-gray-400 text-[11px] w-full text-right">
+                <p className="p-0 w-fit font-regular text-gray-400 text-[11px] text-right">
                   {formatTimestamp(group?.lastMessageTimestamp)}
                 </p>
               </button>

@@ -11,7 +11,7 @@ import {
 } from "firebase/storage";
 import { getDatabase, ref as dbRef, update, onValue } from "firebase/database";
 import toast from "react-hot-toast";
-import defaultImage from "../assets/user1.png"; // Default avatar image
+import defaultImage from "../assets/default.jpg"; // Default avatar image
 
 const UserProfileModal = ({ isOpen, onClose, user }) => {
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);

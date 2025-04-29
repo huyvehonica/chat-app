@@ -16,9 +16,9 @@ import {
 } from "../firebase/firebase";
 import { getDatabase, ref, get } from "firebase/database";
 
-const SDKAppID = 20022132; // Replace with your actual AppID
+const SDKAppID = 20022350; // Replace with your actual AppID
 const SDKSecretKey =
-  "c25c392a16a1905567574b56e1423b87f7bfaab08d4e66838d80c071652db0fc"; // Don't use this key in production
+  "a5441eb526d132b6d5b76be8329313b921164565f864516193027bc6e451735a"; // Don't use this key in production
 
 const VideoCallPage = () => {
   const [searchParams] = useSearchParams();
@@ -33,6 +33,7 @@ const VideoCallPage = () => {
   const [initSuccess, setInitSuccess] = useState(false);
   const [currentUserID, setCurrentUserID] = useState("");
   const [callInitiated, setCallInitiated] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Handle TUICallKit initialization
   useEffect(() => {
@@ -46,7 +47,7 @@ const VideoCallPage = () => {
       try {
         const userID = auth.currentUser.uid;
 
-        console.error("User ID:", userID);
+        console.log("User ID:", userID);
 
         setCurrentUserID(userID);
 
@@ -92,23 +93,33 @@ const VideoCallPage = () => {
 
   // Handle call initiation or joining
   useEffect(() => {
-    if (!initSuccess || callInitiated) return;
+    if (!initSuccess || callInitiated || isProcessing) return;
 
     const makeOrJoinCall = async () => {
+      console.log("Making or joining call...");
+      setIsProcessing(true);
+
       try {
-        // If group call
-        if (isGroup && groupId) {
+        // Determine which call scenario we're in
+        const currentUserId = auth.currentUser?.uid;
+
+        // SCENARIO 1: Group call initiator
+        if (isGroup && groupId && (!callId || callerUserID === currentUserId)) {
+          console.log("Initiating group call for group:", groupId);
+
           // Get group information
           const groupRef = ref(rtdb, `groups/${groupId}`);
           const groupSnapshot = await get(groupRef);
 
           if (groupSnapshot.exists()) {
+            console.log("Group data:", groupSnapshot.val());
             const groupData = groupSnapshot.val();
 
             // Get all members except the current user
             const memberIds = Object.keys(groupData.members || {}).filter(
-              (uid) => uid !== auth.currentUser.uid
+              (uid) => uid !== currentUserId
             );
+            console.log("Group members to call:", memberIds);
 
             if (memberIds.length > 0) {
               // Call all members using TUICallKit
@@ -118,23 +129,62 @@ const VideoCallPage = () => {
               };
               console.log("Group Call Params:", params);
               await TUICallKitServer.calls(params);
+
+              // If we have a callId, update its status
+              if (callId) {
+                await updateCallStatus(callId, "active");
+              } else {
+                // Create a new call record if needed
+                // initiateCall() implementation depends on your firebase setup
+              }
             } else {
               console.warn("No members to call in this group");
+              alert("No members to call in this group");
+              navigate("/chat");
+              return;
             }
+          } else {
+            console.error("Group not found");
+            alert("Group not found");
+            navigate("/chat");
+            return;
           }
         }
-        // Individual call logic (existing code)
-        else if (callerUserID === auth.currentUser.uid && calleeUserID) {
+        // SCENARIO 2: Individual call initiator (1-1 call)
+        else if (!isGroup && callerUserID === currentUserId && calleeUserID) {
+          console.log("Initiating 1-1 call to:", calleeUserID);
+
           // Make the call
           await TUICallKitServer.calls({
             userIDList: [calleeUserID],
             type: TUICallType.VIDEO_CALL,
           });
+
+          // Update call status if we have a callId
+          if (callId) {
+            await updateCallStatus(callId, "active");
+          }
         }
-        // If receiver of a call that's been accepted
-        else if (callId && calleeUserID === auth.currentUser.uid) {
-          // Update call status to joined
+        // SCENARIO 3: Call receiver - someone has called the current user
+        else if (callId && calleeUserID === currentUserId) {
+          console.log("Joining call as receiver, callId:", callId);
+          // Just update call status to joined - the actual receiving of the call
+          // is handled by TUICallKit automatically
           await updateCallStatus(callId, "joined");
+        }
+        // SCENARIO 4: Unknown scenario
+        else {
+          console.error("Unhandled call scenario", {
+            isGroup,
+            groupId,
+            callId,
+            callerUserID,
+            calleeUserID,
+            currentUserId,
+          });
+          alert("Invalid call parameters");
+          navigate("/chat");
+          return;
         }
 
         setCallInitiated(true);
@@ -142,6 +192,8 @@ const VideoCallPage = () => {
         console.error("Error making or joining call:", error);
         alert("Failed to connect: " + error.message);
         navigate("/chat");
+      } finally {
+        setIsProcessing(false);
       }
     };
 
@@ -154,6 +206,8 @@ const VideoCallPage = () => {
     callInitiated,
     isGroup,
     groupId,
+    isProcessing,
+    navigate,
   ]);
 
   // Handle call events
@@ -180,7 +234,7 @@ const VideoCallPage = () => {
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       {initSuccess && (
-        <TUICallKit allowedMinimized={true} allowedFullScree={true} />
+        <TUICallKit allowedMinimized={true} allowedFullScreen={true} />
       )}
     </div>
   );
