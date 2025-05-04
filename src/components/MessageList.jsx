@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
 import formatTimestamp from "../utils/formatTimestamp";
-import imageDefault from "../assets/default.jpg";
 import { RiSendPlaneFill } from "react-icons/ri";
 import { BsThreeDots } from "react-icons/bs";
 import { ref as dbRef, set, update } from "firebase/database";
@@ -11,11 +10,14 @@ import {
 } from "firebase/storage";
 import { listenForGroupMessages, rtdb, storage } from "../firebase/firebase";
 import { RemoveMessageDialogComponent } from "./RemoveMessageDialogComponent";
-import { LucideUploadCloud } from "lucide-react";
+import { LucideUploadCloud, Mic, MicOff } from "lucide-react";
 import { LuFile, LuDownload } from "react-icons/lu";
 import { CgSpinner } from "react-icons/cg";
 import toast from "react-hot-toast";
 import RecipientMessage from "./RecipientMessage";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
 
 const MessageList = ({
   messages,
@@ -37,8 +39,65 @@ const MessageList = ({
   const [uploadProgress, setUploadProgress] = useState({});
   const [fileInputRef] = useState(React.createRef());
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isSpeechActive, setIsSpeechActive] = useState(false);
+  const [prevTranscript, setPrevTranscript] = useState(""); // Track previous transcript
 
   const chatBoxRef = useRef(null);
+
+  // Speech recognition setup
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition();
+
+  // Update message input with speech transcript (optimized)
+  useEffect(() => {
+    if (transcript && transcript !== prevTranscript && listening) {
+      // Only update when transcript changes
+      const newText = transcript.slice(prevTranscript.length);
+      if (newText.trim()) {
+        setSendMessageText((prev) => prev + newText);
+        setPrevTranscript(transcript);
+      }
+    }
+  }, [transcript, prevTranscript, listening]);
+
+  // Toggle speech recognition
+  const toggleSpeechRecognition = () => {
+    if (listening) {
+      stopSpeechRecognition();
+    } else {
+      startSpeechRecognition();
+    }
+  };
+
+  // Start speech recognition with proper setup
+  const startSpeechRecognition = () => {
+    resetTranscript();
+    setPrevTranscript("");
+    setTimeout(() => {
+      SpeechRecognition.startListening({
+        continuous: true,
+        language: "vi-VN", // Tiếng Việt
+        interimResults: true,
+      });
+      setIsSpeechActive(true);
+      toast.success("Mở chế độ ghi âm. Hãy nói...");
+    }, 100);
+  };
+
+  // Stop speech recognition
+  const stopSpeechRecognition = () => {
+    SpeechRecognition.stopListening();
+    setIsSpeechActive(false);
+    const finalTranscript = transcript;
+    setTimeout(() => {
+      resetTranscript();
+      setPrevTranscript("");
+    }, 100);
+  };
 
   const toggleMenu = (index) => {
     setActiveMenu((prev) => (prev === index ? null : index));
@@ -255,6 +314,38 @@ const MessageList = ({
   const closeImageModal = () => {
     setSelectedImage(null);
   };
+
+  // Custom handle send message with speech recognition support
+  const handleSendMessageWithSpeech = (e) => {
+    e.preventDefault();
+
+    // If speech recognition is active, stop it when sending
+    if (listening) {
+      // Dừng listen trước tiên
+      SpeechRecognition.stopListening();
+      setIsSpeechActive(false);
+
+      // Gửi message với text hiện tại, không đợi transcript thêm vào
+      setTimeout(() => {
+        // Reset sau khi đã gửi
+        resetTranscript();
+        setPrevTranscript("");
+      }, 100);
+    }
+
+    // Call the original handleSendMessage function
+    handleSendMessage(e);
+  };
+
+  // Cleanup speech recognition on component unmount
+  useEffect(() => {
+    return () => {
+      if (listening) {
+        SpeechRecognition.stopListening();
+      }
+    };
+  }, [listening]);
+
   return (
     <main className="custom-scrollbar relative h-full w-[100%] flex flex-col justify-between">
       {/* Hidden file input for manual file selection */}
@@ -537,24 +628,46 @@ const MessageList = ({
       <div className="sticky lg:bottom-0 bottom-[20px] p-3 h-fit w-full">
         <div>
           <form
-            onSubmit={handleSendMessage}
+            onSubmit={handleSendMessageWithSpeech}
             className="flex items-center bg-white h-[45px] w-full px-2 rounded-lg relative shadow-lg"
           >
             <input
               type="text"
               value={sendMessageText}
               onChange={(e) => setSendMessageText(e.target.value)}
-              placeholder="Write your message"
-              className="h-full text-[#2A3D39] outline-none text-[16px] pl-3 pr-[50px] rounded-lg w-[100%]"
+              placeholder={listening ? "Đang ghi âm..." : "Write your message"}
+              className={`h-full text-[#2A3D39] outline-none text-[16px] pl-3 pr-[90px] rounded-lg w-[100%] ${
+                listening ? "bg-[#f0f9f7]" : ""
+              }`}
             />
+
+            {/* Speech-to-text button */}
+            {browserSupportsSpeechRecognition && (
+              <button
+                type="button"
+                onClick={toggleSpeechRecognition}
+                className={`flex items-center justify-center absolute right-[50px] p-2 rounded-full ${
+                  listening ? "bg-[#ff4d4f] text-white" : "hover:bg-[#e6f7f3]"
+                }`}
+                title={listening ? "Dừng ghi âm" : "Bắt đầu ghi âm"}
+              >
+                {listening ? (
+                  <MicOff size={18} />
+                ) : (
+                  <Mic color="#01AA85" size={18} />
+                )}
+              </button>
+            )}
+
             {/* Add file upload button */}
             <button
               type="button"
               onClick={handleFileSelect}
-              className="flex items-center justify-center absolute right-12 p-2 rounded-full hover:bg-[#e6f7f3]"
+              className="flex items-center justify-center absolute right-[80px] p-2 rounded-full hover:bg-[#e6f7f3]"
             >
               <LucideUploadCloud color="#01AA85" size={18} />
             </button>
+
             <button
               type="submit"
               className="flex items-center justify-center absolute right-3 p-2 rounded-full bg-[#D9f2ed] hover:bg-[#c8eae3]"
@@ -562,6 +675,14 @@ const MessageList = ({
               <RiSendPlaneFill color="#01AA85" />
             </button>
           </form>
+
+          {/* Speech recognition status indicator */}
+          {listening && (
+            <div className="absolute bottom-[-24px] left-3 flex items-center gap-1 text-xs text-[#01AA85]">
+              <div className="w-2 h-2 rounded-full bg-[#ff4d4f] animate-pulse"></div>
+              <span>Đang ghi âm...</span>
+            </div>
+          )}
         </div>
       </div>
       <RemoveMessageDialogComponent
