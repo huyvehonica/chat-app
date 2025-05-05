@@ -17,7 +17,7 @@ import toast from "react-hot-toast";
 import debounce from "lodash/debounce";
 import { motion, AnimatePresence } from "framer-motion";
 
-const SearchModal = ({ startChat }) => {
+const SearchModal = ({ startChat, currentUser }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTem, setSearchTem] = useState("");
   const [users, setUsers] = useState([]);
@@ -49,7 +49,8 @@ const SearchModal = ({ startChat }) => {
         const matchedUsers = Object.values(usersData).filter(
           (user) =>
             user.username &&
-            user.username.toLowerCase().includes(normalizedSearchTerm)
+            user.username.toLowerCase().includes(normalizedSearchTerm) &&
+            user.uid !== currentUser?.uid
         );
         console.log("Matched Users:", matchedUsers);
         setUsers(matchedUsers);

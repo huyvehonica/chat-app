@@ -16,9 +16,9 @@ import {
 } from "../firebase/firebase";
 import { getDatabase, ref, get } from "firebase/database";
 
-const SDKAppID = 20022350; // Replace with your actual AppID
+const SDKAppID = 20022674; // Replace with your actual AppID
 const SDKSecretKey =
-  "a5441eb526d132b6d5b76be8329313b921164565f864516193027bc6e451735a"; // Don't use this key in production
+  "4330ba37d08137345e2cad1cb1a588a4c59c040206ef90bcd508deeeaeb92918"; // Don't use this key in production
 
 const VideoCallPage = () => {
   const [searchParams] = useSearchParams();
@@ -189,6 +189,7 @@ const VideoCallPage = () => {
 
         setCallInitiated(true);
       } catch (error) {
+        console.log("Fucknig shitttt");
         console.error("Error making or joining call:", error);
         alert("Failed to connect: " + error.message);
         navigate("/chat");

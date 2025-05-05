@@ -5,6 +5,7 @@ import imageDefault from "../assets/default.jpg";
 import { BsThreeDots } from "react-icons/bs";
 import { ref, get } from "firebase/database"; // Import Firebase Realtime Database
 import { rtdb } from "../firebase/firebase"; // Import Firebase instance
+import formatTimestamp from "../utils/formatTimestamp";
 
 const RecipientMessage = ({
   msg,
@@ -104,7 +105,7 @@ const RecipientMessage = ({
           )}
 
           <p className="text-gray-400 text-xs text-left mt-1">
-            {new Date(msg.timestamp).toLocaleString()}
+            {formatTimestamp(msg.timestamp)}
           </p>
         </div>
       </span>

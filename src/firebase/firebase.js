@@ -6,16 +6,7 @@ import {
   setPersistence,
   browserLocalPersistence,
 } from "firebase/auth";
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getFirestore,
-  onSnapshot,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
+
 import { serverTimestamp, update } from "firebase/database";
 import { getDatabase, ref, set, onValue, get, push } from "firebase/database";
 import { getStorage } from "firebase/storage";

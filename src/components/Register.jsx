@@ -7,7 +7,12 @@ import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ref, set } from "firebase/database";
+import { TUICallKitServer } from "@tencentcloud/call-uikit-react"; // Import TUICallKitServer
+import * as GenerateTestUserSig from "../debug/GenerateTestUserSig-es"; // Import hàm tạo userSig
 
+const SDKAppID = 20022674; // Thay bằng AppID thực tế của bạn
+const SDKSecretKey =
+  "4330ba37d08137345e2cad1cb1a588a4c59c040206ef90bcd508deeeaeb92918"; // Không dùng key này trong production
 const Register = ({ isLogin, setIsLogin }) => {
   const {
     register,
@@ -36,6 +41,17 @@ const Register = ({ isLogin, setIsLogin }) => {
         fullName: data.fullName,
         username: user.email?.split("@")[0],
         image: "",
+      });
+      const { userSig } = GenerateTestUserSig.genTestUserSig({
+        userID: user.uid,
+        SDKAppID,
+        SecretKey: SDKSecretKey,
+      });
+
+      await TUICallKitServer.init({
+        userID: user.uid,
+        userSig,
+        SDKAppID,
       })
         .then(() => {
           console.log("Data written successfully!");

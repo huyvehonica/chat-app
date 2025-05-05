@@ -193,7 +193,7 @@ const ChatList = ({ setSelectedUser }) => {
                 <span className="text-sm">Tạo nhóm</span>
               </button>
             )}
-            <SearchModal startChat={startChat} />
+            <SearchModal startChat={startChat} currentUser={user} />
           </div>
         </header>
       </div>
