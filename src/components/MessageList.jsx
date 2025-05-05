@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import formatTimestamp from "../utils/formatTimestamp";
 import { RiSendPlaneFill } from "react-icons/ri";
 import { BsThreeDots } from "react-icons/bs";
+import { FaRegSmile } from "react-icons/fa";
 import { ref as dbRef, set, update } from "firebase/database";
 import {
   ref as storageRef,
@@ -18,6 +19,8 @@ import RecipientMessage from "./RecipientMessage";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
+import data from "@emoji-mart/data";
+import Picker from "@emoji-mart/react";
 
 const MessageList = ({
   messages,
@@ -43,6 +46,7 @@ const MessageList = ({
   const [prevTranscript, setPrevTranscript] = useState(""); // Track previous transcript
 
   const chatBoxRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Speech recognition setup
   const {
@@ -640,7 +644,26 @@ const MessageList = ({
                 listening ? "bg-[#f0f9f7]" : ""
               }`}
             />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="flex absolute top-1/2 -translate-y-1/2  right-[110px] p-2 rounded-full hover:bg-[#e6f7f3]"
+              >
+                <FaRegSmile color="#01AA85" size={18} />
+              </button>
 
+              {showEmojiPicker && (
+                <div className="absolute bottom-[50px] right-[120px] z-50 shadow-lg">
+                  <Picker
+                    data={data}
+                    onEmojiSelect={(emoji) =>
+                      setSendMessageText((prev) => prev + emoji.native)
+                    }
+                  />
+                </div>
+              )}
+            </div>
             {/* Speech-to-text button */}
             {browserSupportsSpeechRecognition && (
               <button

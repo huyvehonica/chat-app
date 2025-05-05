@@ -146,13 +146,7 @@ const ChatList = ({ setSelectedUser }) => {
           </span>
         </main>
 
-        <button
-          className="bg-[#D9F2ED] w-[35px] h-[35px] p-2 items-center flex justify-center rounded-lg"
-          onClick={openCreateGroupModal}
-          title="Tạo nhóm mới"
-        >
-          <HiOutlineUserGroup color="#01AA85" className="w-[28px] h-[28px]" />
-        </button>
+        <SearchModal startChat={startChat} currentUser={user} />
       </header>
       <div className="w-full flex border-b border-gray-200">
         <button
@@ -193,7 +187,6 @@ const ChatList = ({ setSelectedUser }) => {
                 <span className="text-sm">Tạo nhóm</span>
               </button>
             )}
-            <SearchModal startChat={startChat} currentUser={user} />
           </div>
         </header>
       </div>

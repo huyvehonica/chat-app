@@ -93,7 +93,14 @@ const RecipientMessage = ({
                 {msg.isDeleted ? (
                   <i className="text-gray-400">This message has been deleted</i>
                 ) : (
-                  msg.text
+                  <>
+                    {msg.text}
+                    {msg.isEdited && (
+                      <span className="text-xs text-gray-400 ml-1">
+                        (edited)
+                      </span>
+                    )}
+                  </>
                 )}
               </p>
               {hoveredMessage === index && (

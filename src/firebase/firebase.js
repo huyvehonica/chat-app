@@ -17,9 +17,6 @@ import { updateProfile } from "firebase/auth";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
-console.log("Firebase Config Variables:");
-console.log("API Key exists:", !!import.meta.env.VITE_API_KEY);
-console.log("Auth Domain exists:", !!import.meta.env.VITE_AUTH_DOMAIN);
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
