@@ -21,6 +21,8 @@ import SpeechRecognition, {
 } from "react-speech-recognition";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
+import MessageReactions from "./MessageReactions";
+import ReactionBar from "./ReactionBar";
 
 const MessageList = ({
   messages,
@@ -47,7 +49,26 @@ const MessageList = ({
 
   const chatBoxRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
+  const emojiPickerRef = useRef(null);
+  const emojiButtonRef = useRef(null);
+  const [showReactionBar, setShowReactionBar] = useState(null);
+  const [messageWithOpenMenu, setMessageWithOpenMenu] = useState(null);
+  const [messageWithOpenEmoji, setMessageWithOpenEmoji] = useState(null);
+  const handleReaction = async (messageId, emoji) => {
+    const messageRef = dbRef(
+      rtdb,
+      `chats/${chatId}/messages/${messageId}/reactions/${senderEmail.replace(
+        /[.#$\/[\]]/g,
+        "_"
+      )}`
+    );
+    await set(messageRef, {
+      emoji,
+      timestamp: Date.now(),
+      userId: senderEmail,
+    });
+    setShowReactionBar(null); // Hide reaction bar after selecting
+  };
   // Speech recognition setup
   const {
     transcript,
@@ -67,6 +88,39 @@ const MessageList = ({
       }
     }
   }, [transcript, prevTranscript, listening]);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if clicking on emoji button
+      if (
+        emojiButtonRef.current &&
+        !emojiButtonRef.current.contains(event.target) &&
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target)
+      ) {
+        setShowEmojiPicker(false);
+      }
+
+      // Check if clicking on message menu
+      const isClickingOnMenu = event.target.closest(".message-menu");
+      if (!isClickingOnMenu && messageWithOpenMenu !== null) {
+        setMessageWithOpenMenu(null);
+      }
+
+      // Check if clicking on reaction bar
+      const isClickingOnReactionBar = event.target.closest(".reaction-bar");
+      if (!isClickingOnReactionBar && messageWithOpenEmoji !== null) {
+        setShowReactionBar(null);
+        setMessageWithOpenEmoji(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [messageWithOpenMenu, messageWithOpenEmoji]);
 
   // Toggle speech recognition
   const toggleSpeechRecognition = () => {
@@ -103,10 +157,22 @@ const MessageList = ({
     }, 100);
   };
 
-  const toggleMenu = (index) => {
-    setActiveMenu((prev) => (prev === index ? null : index));
+  const toggleMenu = (messageId) => {
+    setMessageWithOpenMenu((prev) => (prev === messageId ? null : messageId));
+    // Reset emoji picker state nếu mở menu
+    if (messageWithOpenEmoji === messageId) {
+      setShowReactionBar(null);
+      setMessageWithOpenEmoji(null);
+    }
   };
-
+  const toggleEmojiReaction = (messageId) => {
+    setMessageWithOpenEmoji((prev) => (prev === messageId ? null : messageId));
+    setShowReactionBar((prev) => (prev === messageId ? null : messageId));
+    // Reset menu state nếu mở emoji picker
+    if (messageWithOpenMenu === messageId) {
+      setMessageWithOpenMenu(null);
+    }
+  };
   const [hoveredMessage, setHoveredMessage] = useState(null);
   useEffect(() => {
     if (selectedUser?.type === "group") {
@@ -337,6 +403,11 @@ const MessageList = ({
       }, 100);
     }
 
+    // Close emoji picker if open when sending message
+    if (showEmojiPicker) {
+      setShowEmojiPicker(false);
+    }
+
     // Call the original handleSendMessage function
     handleSendMessage(e);
   };
@@ -349,6 +420,8 @@ const MessageList = ({
       }
     };
   }, [listening]);
+
+  console.log("Messages:", messages);
 
   return (
     <main className="custom-scrollbar relative h-full w-[100%] flex flex-col justify-between">
@@ -386,7 +459,7 @@ const MessageList = ({
                   onMouseLeave={() => setHoveredMessage(null)}
                 >
                   <div className="flex justify-end gap-1 max-w-[70%] h-auto text-sx text-left">
-                    <div>
+                    <div className="relative">
                       {/* Hiển thị tin nhắn */}
                       {msg.type === "image" ? (
                         <div className="relative">
@@ -403,7 +476,7 @@ const MessageList = ({
                             }}
                             onClick={() => handleImageClick(msg.fileURL)}
                           />
-                          <div className="absolute bottom-2 right-2 flex gap-1">
+                          {/* <div className="absolute bottom-2 right-2 flex gap-1">
                             <button
                               onClick={() =>
                                 handleDownloadFile(msg.fileURL, msg.name)
@@ -412,7 +485,7 @@ const MessageList = ({
                             >
                               <LuDownload size={18} />
                             </button>
-                          </div>
+                          </div> */}
                           {msg.status === "uploading" &&
                             uploadProgress[msg.messageId] && (
                               <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-lg">
@@ -494,83 +567,120 @@ const MessageList = ({
                               className="border border-gray-300 rounded px-2 py-1 w-full focus:outline-none"
                             />
                           ) : (
-                            <p className="text-sx text-[#2A3D39] leading-relaxed">
-                              {msg.isDeleted ? (
-                                <i className="text-gray-400">
-                                  Message has been deleted
-                                </i>
-                              ) : (
-                                <>
-                                  {msg.text}
-                                  {msg.isEdited && (
-                                    <span className="text-xs text-gray-400 ml-1">
-                                      (edited)
-                                    </span>
+                            <div className="relative w-fit">
+                              <div className="inline-block">
+                                <p className="text-sx text-[#2A3D39] leading-relaxed inline-block">
+                                  {msg.isDeleted ? (
+                                    <i className="text-gray-400">
+                                      Message has been deleted
+                                    </i>
+                                  ) : (
+                                    <>
+                                      {msg.text}
+                                      {msg.isEdited && (
+                                        <span className="text-xs text-gray-400 ml-1">
+                                          (edited)
+                                        </span>
+                                      )}
+                                    </>
                                   )}
-                                </>
-                              )}
-                            </p>
+                                </p>
+                              </div>
+                            </div>
                           )}
-                          {hoveredMessage === index && (
+                          {(hoveredMessage === index ||
+                            messageWithOpenMenu === msg.messageId ||
+                            messageWithOpenEmoji === msg.messageId) && (
                             <>
                               <div
-                                className="absolute left-[-30px] top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer"
-                                onClick={() => toggleMenu(index)}
+                                className="absolute left-[-30px] top-0 flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer message-menu"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleMenu(msg.messageId);
+                                }}
                               >
                                 <BsThreeDots size={16} color="#555" />
-                              </div>
-                              {activeMenu === index && (
-                                <div className="absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 w-40 z-10">
-                                  <ul className="text-sm text-gray-700">
-                                    {msg.isDeleted ? (
-                                      <li
-                                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                                        onClick={() => {
-                                          // Handle permanent delete
-                                          setActiveMenu(null);
-                                          setIsDialogOpen(true);
-                                        }}
-                                      >
-                                        Remove
-                                      </li>
-                                    ) : (
-                                      <>
-                                        <li
-                                          className="p-2 hover:bg-gray-100 cursor-pointer"
-                                          onClick={() =>
-                                            console.log("Reply clicked")
-                                          }
-                                        >
-                                          Reply
-                                        </li>
+                                {messageWithOpenMenu === msg.messageId && (
+                                  <div className="absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 w-40 z-50 message-menu-container">
+                                    <ul className="text-sm text-gray-700">
+                                      {msg.isDeleted ? (
                                         <li
                                           className="p-2 hover:bg-gray-100 cursor-pointer"
                                           onClick={() => {
-                                            setEditingMessageId(msg.messageId);
-                                            setEditText(msg.text);
+                                            // Handle permanent delete
                                             setActiveMenu(null);
-                                          }}
-                                        >
-                                          Edit
-                                        </li>
-                                        <li
-                                          className="p-2 hover:bg-gray-100 cursor-pointer"
-                                          onClick={() => {
-                                            setSelectedMessage({
-                                              chatId,
-                                              messageId: msg.messageId,
-                                            });
                                             setIsDialogOpen(true);
                                           }}
                                         >
-                                          Delete
+                                          Remove
                                         </li>
-                                      </>
-                                    )}
-                                  </ul>
-                                </div>
-                              )}
+                                      ) : (
+                                        <>
+                                          <li
+                                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                                            onClick={() =>
+                                              console.log("Reply clicked")
+                                            }
+                                          >
+                                            Reply
+                                          </li>
+                                          <li
+                                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                                            onClick={() => {
+                                              setEditingMessageId(
+                                                msg.messageId
+                                              );
+                                              setEditText(msg.text);
+                                              setActiveMenu(null);
+                                            }}
+                                          >
+                                            Edit
+                                          </li>
+                                          <li
+                                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                                            onClick={() => {
+                                              setSelectedMessage({
+                                                chatId,
+                                                messageId: msg.messageId,
+                                              });
+                                              setIsDialogOpen(true);
+                                            }}
+                                          >
+                                            Delete
+                                          </li>
+                                        </>
+                                      )}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div
+                                className="absolute left-[-60px] top-0 flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer reaction-bar"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleEmojiReaction(msg.messageId);
+                                }}
+                              >
+                                <FaRegSmile size={16} color="#555" />
+                                {showReactionBar === msg.messageId && (
+                                  <div className="absolute -left-40 top-1/5 reaction-bar-container z-50">
+                                    <ReactionBar
+                                      className="right-[120px] top-1/2 -translate-y-1/2 mr-500"
+                                      onSelectReaction={(emoji) => {
+                                        handleReaction(msg.messageId, emoji);
+                                        setShowReactionBar(null);
+                                        setMessageWithOpenEmoji(null);
+                                      }}
+                                      position="top"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             </>
+                          )}
+                          {!msg.isDeleted && (
+                            <MessageReactions message={msg} chatId={chatId} />
                           )}
                         </div>
                       )}
@@ -593,6 +703,9 @@ const MessageList = ({
                   selectedImage={selectedImage}
                   handleImageClick={handleImageClick}
                   closeImageModal={closeImageModal}
+                  handleReaction={handleReaction}
+                  showReactionBar={showReactionBar}
+                  setShowReactionBar={setShowReactionBar}
                 />
               )}
             </div>
@@ -647,19 +760,23 @@ const MessageList = ({
             <div className="relative">
               <button
                 type="button"
+                ref={emojiButtonRef}
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="flex absolute top-1/2 -translate-y-1/2  right-[110px] p-2 rounded-full hover:bg-[#e6f7f3]"
+                className="flex absolute top-1/2 -translate-y-1/2 right-[110px] p-2 rounded-full hover:bg-[#e6f7f3]"
               >
                 <FaRegSmile color="#01AA85" size={18} />
               </button>
 
               {showEmojiPicker && (
-                <div className="absolute bottom-[50px] right-[120px] z-50 shadow-lg">
+                <div
+                  ref={emojiPickerRef}
+                  className="absolute lg:bottom-[50px] bottom-[60px] lg:right-[120px] right-[60px] z-[100] shadow-lg scale-[0.85] lg:scale-100 origin-bottom-right"
+                >
                   <Picker
                     data={data}
-                    onEmojiSelect={(emoji) =>
-                      setSendMessageText((prev) => prev + emoji.native)
-                    }
+                    onEmojiSelect={(emoji) => {
+                      setSendMessageText((prev) => prev + emoji.native);
+                    }}
                   />
                 </div>
               )}

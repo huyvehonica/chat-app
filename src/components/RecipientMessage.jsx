@@ -6,6 +6,8 @@ import { BsThreeDots } from "react-icons/bs";
 import { ref, get } from "firebase/database"; // Import Firebase Realtime Database
 import { rtdb } from "../firebase/firebase"; // Import Firebase instance
 import formatTimestamp from "../utils/formatTimestamp";
+import { FaRegSmile } from "react-icons/fa";
+import ReactionBar from "./ReactionBar";
 
 const RecipientMessage = ({
   msg,
@@ -16,6 +18,9 @@ const RecipientMessage = ({
   hoveredMessage,
   handleImageClick,
   setHoveredMessage,
+  handleReaction,
+  showReactionBar,
+  setShowReactionBar,
 }) => {
   const [senderInfo, setSenderInfo] = useState(null);
 
@@ -53,14 +58,14 @@ const RecipientMessage = ({
                 onClick={() => handleImageClick(msg.fileURL)}
                 className="max-w-[250px] max-h-[300px] rounded-lg shadow-sm object-cover"
               />
-              <div className="absolute bottom-2 right-2 flex gap-1">
+              {/* <div className="absolute bottom-2 right-2 flex gap-1">
                 <button
                   onClick={() => handleDownloadFile(msg.fileURL, msg.name)}
                   className="bg-white/80 hover:bg-white p-1 rounded-full text-[#01aa85]"
                 >
                   <LuDownload size={18} />
                 </button>
-              </div>
+              </div> */}
             </div>
           ) : msg.type === "file" ? (
             <div className="bg-white relative flex justify-between items-center gap-3 p-3 rounded-lg shadow-sm">
@@ -104,8 +109,43 @@ const RecipientMessage = ({
                 )}
               </p>
               {hoveredMessage === index && (
-                <div className="absolute flex justify-center items-center top-1/2 -right-7 -translate-y-1/2 h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer">
-                  <BsThreeDots size={16} color="#555" />
+                <>
+                  <div className="absolute flex justify-center items-center top-0 -right-7  h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer message-menu">
+                    <BsThreeDots size={16} color="#555" />
+                  </div>
+                  <div
+                    className="absolute flex justify-center items-center top-0 -right-14  h-6 w-6 rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer reaction-bar"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowReactionBar(msg.messageId);
+                    }}
+                  >
+                    <FaRegSmile size={16} color="#555" />
+                  </div>
+                  {showReactionBar === msg.messageId && (
+                    <div className="absolute right-[15px] top-1/3 reaction-bar-container z-50">
+                      <ReactionBar
+                        className="left-[120px] top-1/2 -translate-y-1/2 mr-500"
+                        onSelectReaction={(emoji) => {
+                          handleReaction(msg.messageId, emoji);
+                          setShowReactionBar(null);
+                        }}
+                        position="top"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+              {!msg.isDeleted && msg.reactions && (
+                <div className=" absolute right-0 translate-y-1/2  top-0 translate-x-1/2 bg-white p-1 rounded-full shadow text-sm flex gap-1 border border-gray-200">
+                  {Object.values(msg.reactions).map((reaction, i) => (
+                    <div
+                      key={i}
+                      className="bg-gray-100 rounded-full text-sm  hover:bg-gray-200"
+                    >
+                      {reaction.emoji}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -12,6 +12,7 @@ import {
 import { getDatabase, ref as dbRef, update, onValue } from "firebase/database";
 import toast from "react-hot-toast";
 import defaultImage from "../assets/default.jpg"; // Default avatar image
+import { IoSunnySharp } from "react-icons/io5";
 
 const UserProfileModal = ({ isOpen, onClose, user }) => {
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
@@ -21,7 +22,12 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
   const [previousPhotoURL, setPreviousPhotoURL] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => !prev);
+    document.documentElement.classList.toggle("dark", !isDarkMode); // Thêm class `dark` vào thẻ <html>
+  };
   useEffect(() => {
     console.log("User Profile Modal:", user);
 
@@ -175,6 +181,22 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative flex flex-col items-center justify-center mb-4">
+                <div
+                  className="absolute top-0 right-0 p-2 cursor-pointer"
+                  onClick={toggleDarkMode}
+                >
+                  <motion.div
+                    initial={{ rotate: 0 }}
+                    animate={{ rotate: isDarkMode ? 180 : 0 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                  >
+                    <IoSunnySharp
+                      className={`top-0 right-0 ${
+                        isDarkMode ? "text-yellow-400" : "text-[#01AA85]"
+                      } w-8 h-8 bg-white dark:bg-gray-700 p-1 rounded-full cursor-pointer`}
+                    />
+                  </motion.div>
+                </div>
                 <div className="relative w-[100px] h-[100px] mb-4">
                   <img
                     src={avatar}
