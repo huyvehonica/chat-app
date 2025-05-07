@@ -123,8 +123,8 @@ const ChatList = ({ setSelectedUser }) => {
     setShowCreateGroupModal(false);
   };
   return (
-    <section className="relative  lg:flex flex-col items-start justify-start bg-white h-[100vh] w-[100%] lg:w-[600px]  ">
-      <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0 z-[50] border-r border-[#9090902c]">
+    <section className="relative lg:flex flex-col items-start justify-start border-r bg-white dark:bg-gray-900 dark:border-gray-700 h-[100vh] w-[100%] lg:w-[600px]">
+      <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0 z-[50] border-r border-[#9090902c] dark:border-gray-700 dark:bg-gray-900">
         <main
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => openProfileModal(user)}
@@ -137,10 +137,10 @@ const ChatList = ({ setSelectedUser }) => {
             />
           </div>
           <span>
-            <h3 className="p-0 font-semibold text-[#283D39] md:text-[17px]">
+            <h3 className="p-0 font-semibold text-[#283D39] dark:text-white md:text-[17px]">
               {user?.fullName || "User"}
             </h3>
-            <p className="p-0 font-light text-[#2A3D39] text-[15px]">
+            <p className="p-0 font-light text-[#2A3D39] dark:text-gray-300 text-[15px]">
               @{user?.username || "User"}
             </p>
           </span>
@@ -148,12 +148,12 @@ const ChatList = ({ setSelectedUser }) => {
 
         <SearchModal startChat={startChat} currentUser={user} />
       </header>
-      <div className="w-full flex border-b border-gray-200">
+      <div className="w-full flex border-b border-gray-200 dark:border-gray-700">
         <button
           className={`flex-1 py-3 text-center font-medium ${
             activeTab === "chats"
-              ? "text-teal-600 border-b-2 border-teal-600"
-              : "text-gray-500"
+              ? "text-teal-600 dark:text-teal-400 border-b-2 border-teal-600 dark:border-teal-400"
+              : "text-gray-500 dark:text-gray-400"
           }`}
           onClick={() => setActiveTab("chats")}
         >
@@ -162,8 +162,8 @@ const ChatList = ({ setSelectedUser }) => {
         <button
           className={`flex-1 py-3 text-center font-medium ${
             activeTab === "groups"
-              ? "text-teal-600 border-b-2 border-teal-600"
-              : "text-gray-500"
+              ? "text-teal-600 dark:text-teal-400 border-b-2 border-teal-600 dark:border-teal-400"
+              : "text-gray-500 dark:text-gray-400"
           }`}
           onClick={() => setActiveTab("groups")}
         >
@@ -172,7 +172,7 @@ const ChatList = ({ setSelectedUser }) => {
       </div>
       <div className="w-full mt-[10px] px-5">
         <header className="items-center flex justify-between">
-          <h3 className="text-gray-800 text-[16px] ">
+          <h3 className="text-gray-800 dark:text-gray-200 text-[16px]">
             {activeTab === "chats"
               ? `Tin nhắn (${chats?.length || 0})`
               : `Nhóm chat (${groups?.length || 0})`}
@@ -181,7 +181,7 @@ const ChatList = ({ setSelectedUser }) => {
             {activeTab === "groups" && (
               <button
                 onClick={openCreateGroupModal}
-                className="flex items-center text-teal-600 bg-teal-50 px-2 py-1 rounded-md hover:bg-teal-100"
+                className="flex items-center text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-1 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/50"
               >
                 <HiOutlineUserAdd className="mr-1" size={16} />
                 <span className="text-sm">Tạo nhóm</span>
@@ -203,7 +203,7 @@ const ChatList = ({ setSelectedUser }) => {
               return (
                 <button
                   key={chat?.id}
-                  className="cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] px-5 pb-3 pt-3 hover:bg-accent"
+                  className="cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] dark:border-gray-700 px-5 pb-3 pt-3 hover:bg-accent dark:hover:bg-gray-800"
                   onClick={() => startChat(userDetails[otherUsers[0]])}
                 >
                   <div className="grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3">
@@ -216,10 +216,10 @@ const ChatList = ({ setSelectedUser }) => {
                     </div>
 
                     <span>
-                      <h2 className="p-0 font-semibold text-[#2A3d39] text-left text-[17px]">
+                      <h2 className="p-0 font-semibold text-[#2A3d39] dark:text-white text-left text-[17px]">
                         {userDetails[otherUsers[0]]?.fullName}
                       </h2>
-                      <p className="p-0 font-light text-gray-500 text-left text-[14px] truncate max-w-[140px]">
+                      <p className="p-0 font-light text-gray-500 dark:text-gray-400 text-left text-[14px] truncate max-w-[140px]">
                         {chat?.lastMessageSenderId === auth?.currentUser?.uid
                           ? `You: ${chat?.lastMessage}`
                           : chat?.lastMessage}
@@ -236,7 +236,7 @@ const ChatList = ({ setSelectedUser }) => {
             sortedGroups?.map((group) => (
               <button
                 key={group?.id}
-                className="cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] px-5 pb-3 pt-3 hover:bg-accent"
+                className="cursor-pointer flex items-start justify-between w-[100%] border-b border-[#9090901d] dark:border-gray-700 px-5 pb-3 pt-3 hover:bg-accent dark:hover:bg-gray-800"
                 onClick={() => startGroupChat(group)}
               >
                 <div className="grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3">
@@ -249,10 +249,10 @@ const ChatList = ({ setSelectedUser }) => {
                   </div>
 
                   <span>
-                    <h2 className="p-0 line-clamp-1 font-semibold text-[#2A3d39] text-left text-[17px]">
+                    <h2 className="p-0 line-clamp-1 font-semibold text-[#2A3d39] dark:text-white text-left text-[17px]">
                       {group?.name}
                     </h2>
-                    <p className="p-0 font-light text-gray-500 text-left text-[14px] truncate max-w-[140px]">
+                    <p className="p-0 font-light text-gray-500 dark:text-gray-400 text-left text-[14px] truncate max-w-[140px]">
                       {group?.lastMessageSenderId === auth?.currentUser?.uid
                         ? `You: ${group?.lastMessage}`
                         : group?.lastMessage}
@@ -268,8 +268,10 @@ const ChatList = ({ setSelectedUser }) => {
         {/* Hiển thị tin nhắn nếu không có cuộc trò chuyện nào */}
         {activeTab === "chats" && sortedChats.length === 0 && (
           <div className="flex flex-col items-center justify-center w-full h-40">
-            <p className="text-gray-500">Bạn chưa có cuộc trò chuyện nào</p>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-500 dark:text-gray-400">
+              Bạn chưa có cuộc trò chuyện nào
+            </p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">
               Hãy tìm kiếm người dùng để bắt đầu trò chuyện
             </p>
           </div>
@@ -278,10 +280,12 @@ const ChatList = ({ setSelectedUser }) => {
         {/* Hiển thị tin nhắn nếu không có nhóm nào */}
         {activeTab === "groups" && sortedGroups.length === 0 && (
           <div className="flex flex-col items-center justify-center w-full h-40">
-            <p className="text-gray-500">Bạn chưa tham gia nhóm nào</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              Bạn chưa tham gia nhóm nào
+            </p>
             <button
               onClick={openCreateGroupModal}
-              className="mt-2 flex items-center text-teal-600 bg-teal-50 px-3 py-2 rounded-md hover:bg-teal-100"
+              className="mt-2 flex items-center text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-3 py-2 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/50"
             >
               <HiOutlineUserAdd className="mr-1" size={16} />
               <span>Tạo nhóm mới</span>

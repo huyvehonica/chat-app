@@ -188,19 +188,23 @@ const ChatBox = ({ selectedUser, onBack }) => {
   return (
     <>
       {selectedUser ? (
-        <section className="relative flex flex-col items-start justify-start h-screen w-[100%] background-image">
-          <header className=" border-b border-gray-200 w-[100%] h-[81px] m:h-fit p-4 bg-white z-50">
-            <main className=" flex items-center gap-3 jus">
+        <section className="relative flex flex-col items-start justify-start h-screen w-[100%] background-image dark:bg-gray-900 dark:bg-none">
+          <header className="border-b border-gray-200 dark:border-gray-700 w-[100%] h-[81px] m:h-fit p-4 bg-white dark:bg-gray-900 z-50">
+            <main className="flex items-center gap-3 jus">
               <button
-                className="p-2 rounded-full hover:bg-[#D9F2ED] block md:hidden"
+                className="p-2 rounded-full hover:bg-[#D9F2ED] dark:hover:bg-gray-800 block md:hidden"
                 onClick={onBack}
               >
-                <RiArrowLeftLine color="#01aa85" size={24} />
+                <RiArrowLeftLine
+                  color="#01aa85"
+                  className="dark:text-teal-400"
+                  size={24}
+                />
               </button>
               <div className="flex items-center gap-3">
                 {isGroup ? (
-                  <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center">
-                    <HiOutlineUserGroup className="text-teal-600 text-2xl" />
+                  <div className="w-11 h-11 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                    <HiOutlineUserGroup className="text-teal-600 dark:text-teal-400 text-2xl" />
                   </div>
                 ) : (
                   <img
@@ -210,12 +214,12 @@ const ChatBox = ({ selectedUser, onBack }) => {
                   />
                 )}
                 <span>
-                  <h3 className="font-semibold text-[#2A3D39] text-lg">
+                  <h3 className="font-semibold text-[#2A3D39] dark:text-white text-lg">
                     {isGroup
                       ? groupData?.name || "Group Chat"
                       : userData?.fullName || "Chatfrik User"}
                   </h3>
-                  <p className="font-light text-[#2A3D39] text-lsm">
+                  <p className="font-light text-[#2A3D39] dark:text-gray-300 text-lsm">
                     {isGroup
                       ? `${
                           Object.keys(groupData?.members || {}).length
@@ -225,8 +229,12 @@ const ChatBox = ({ selectedUser, onBack }) => {
                 </span>
               </div>
               <div className="flex items-center gap-3 ml-auto">
-                <button className="p-2 rounded-full hover:bg-[#D9F2ED] hidden md:block">
-                  <CiVideoOn size={22} onClick={handleVideoCall} />
+                <button className="p-2 rounded-full hover:bg-[#D9F2ED] dark:hover:bg-gray-800 hidden md:block">
+                  <CiVideoOn
+                    size={22}
+                    className="dark:text-white"
+                    onClick={handleVideoCall}
+                  />
                 </button>
               </div>
             </main>
@@ -246,13 +254,16 @@ const ChatBox = ({ selectedUser, onBack }) => {
           />
         </section>
       ) : (
-        <section className="h-screen w-full bg-[#e5f6f3]">
+        <section className="h-screen w-full bg-[#e5f6f3] dark:bg-gray-900">
           <div className="flex flex-col justify-center items-center h-full w-full">
-            <img src={logo} />
-            <h1 className="text-[30px] font-bold text-teal-700 mt-5">
+            <img
+              src={logo}
+              className="dark:bg-gray-700 dark:p-2 dark:rounded-lg"
+            />
+            <h1 className="text-[30px] font-bold text-teal-700 dark:text-teal-400 mt-5">
               Welcome to ChatChit
             </h1>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               Connect and chat with your friend easily
             </p>
           </div>

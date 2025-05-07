@@ -463,7 +463,7 @@ const MessageList = ({
         }}
       />
 
-      <section className="px-3 pt-5" ref={chatBoxRef}>
+      <section className="px-3 pt-5 " ref={chatBoxRef}>
         <div
           ref={scrollRef}
           className="overflow-auto h-[80vh] custom-scrollbar"
@@ -772,15 +772,15 @@ const MessageList = ({
         <div>
           <form
             onSubmit={handleSendMessageWithSpeech}
-            className="flex items-center bg-white h-[45px] w-full px-2 rounded-lg relative shadow-lg"
+            className="flex items-center bg-white dark:bg-gray-800 h-[45px] w-full px-2 rounded-lg relative shadow-lg"
           >
             <input
               type="text"
               value={sendMessageText}
               onChange={(e) => setSendMessageText(e.target.value)}
               placeholder={listening ? "Đang ghi âm..." : "Write your message"}
-              className={`h-full text-[#2A3D39] outline-none text-[16px] pl-3 pr-[90px] rounded-lg w-[100%] ${
-                listening ? "bg-[#f0f9f7]" : ""
+              className={`h-full text-[#2A3D39] dark:text-white outline-none text-[16px] pl-3 pr-[90px] rounded-lg w-[100%] bg-transparent ${
+                listening ? "bg-[#f0f9f7] dark:bg-gray-700" : ""
               }`}
             />
             <div className="relative">
@@ -788,9 +788,12 @@ const MessageList = ({
                 type="button"
                 ref={emojiButtonRef}
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="flex absolute top-1/2 -translate-y-1/2 right-[110px] p-2 rounded-full hover:bg-[#e6f7f3]"
+                className="flex absolute top-1/2 -translate-y-1/2 right-[110px] p-2 rounded-full hover:bg-[#e6f7f3] dark:hover:bg-gray-700"
               >
-                <FaRegSmile color="#01AA85" size={18} />
+                <FaRegSmile
+                  className="text-[#01AA85] dark:text-teal-400"
+                  size={18}
+                />
               </button>
 
               {showEmojiPicker && (
@@ -803,6 +806,7 @@ const MessageList = ({
                     onEmojiSelect={(emoji) => {
                       setSendMessageText((prev) => prev + emoji.native);
                     }}
+                    theme="light"
                   />
                 </div>
               )}
@@ -813,14 +817,19 @@ const MessageList = ({
                 type="button"
                 onClick={toggleSpeechRecognition}
                 className={`flex items-center justify-center absolute right-[50px] p-2 rounded-full ${
-                  listening ? "bg-[#ff4d4f] text-white" : "hover:bg-[#e6f7f3]"
+                  listening
+                    ? "bg-[#ff4d4f] text-white"
+                    : "hover:bg-[#e6f7f3] dark:hover:bg-gray-700"
                 }`}
                 title={listening ? "Dừng ghi âm" : "Bắt đầu ghi âm"}
               >
                 {listening ? (
                   <MicOff size={18} />
                 ) : (
-                  <Mic color="#01AA85" size={18} />
+                  <Mic
+                    className="text-[#01AA85] dark:text-teal-400"
+                    size={18}
+                  />
                 )}
               </button>
             )}
@@ -829,22 +838,25 @@ const MessageList = ({
             <button
               type="button"
               onClick={handleFileSelect}
-              className="flex items-center justify-center absolute right-[80px] p-2 rounded-full hover:bg-[#e6f7f3]"
+              className="flex items-center justify-center absolute right-[80px] p-2 rounded-full hover:bg-[#e6f7f3] dark:hover:bg-gray-700"
             >
-              <LucideUploadCloud color="#01AA85" size={18} />
+              <LucideUploadCloud
+                className="text-[#01AA85] dark:text-teal-400"
+                size={18}
+              />
             </button>
 
             <button
               type="submit"
-              className="flex items-center justify-center absolute right-3 p-2 rounded-full bg-[#D9f2ed] hover:bg-[#c8eae3]"
+              className="flex items-center justify-center absolute right-3 p-2 rounded-full bg-[#D9f2ed] dark:bg-teal-900/30 hover:bg-[#c8eae3] dark:hover:bg-teal-900/50"
             >
-              <RiSendPlaneFill color="#01AA85" />
+              <RiSendPlaneFill className="text-[#01AA85] dark:text-teal-400" />
             </button>
           </form>
 
           {/* Speech recognition status indicator */}
           {listening && (
-            <div className="absolute bottom-[-24px] left-3 flex items-center gap-1 text-xs text-[#01AA85]">
+            <div className="absolute bottom-[-24px] left-3 flex items-center gap-1 text-xs text-[#01AA85] dark:text-teal-400">
               <div className="w-2 h-2 rounded-full bg-[#ff4d4f] animate-pulse"></div>
               <span>Đang ghi âm...</span>
             </div>

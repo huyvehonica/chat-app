@@ -13,6 +13,7 @@ import { getDatabase, ref as dbRef, update, onValue } from "firebase/database";
 import toast from "react-hot-toast";
 import defaultImage from "../assets/default.jpg"; // Default avatar image
 import { IoSunnySharp } from "react-icons/io5";
+import { IoMdClose } from "react-icons/io";
 
 const UserProfileModal = ({ isOpen, onClose, user }) => {
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
@@ -163,14 +164,14 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
           />
         ) : (
           <motion.div
-            className="fixed inset-0 z-[200] bg-black/50 bg-opacity-40 flex justify-center items-center"
+            className="fixed inset-0 z-[200] bg-black/50 bg-opacity-40 flex justify-center items-center "
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.3 } }}
             onClick={onClose}
           >
             <motion.div
-              className="bg-white rounded-2xl p-6 w-[90%] max-w-[400px] shadow-xl"
+              className="bg-white  dark:bg-gray-800 dark:text-white rounded-2xl p-6 w-[90%] max-w-[400px] shadow-xl"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{
@@ -182,29 +183,19 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
             >
               <div className="relative flex flex-col items-center justify-center mb-4">
                 <div
-                  className="absolute top-0 right-0 p-2 cursor-pointer"
-                  onClick={toggleDarkMode}
+                  className="absolute top-0 right-0 p-2 cursor-pointer border bg-[#D9F2ED] w-[35px] h-[35px] items-center flex justify-center rounded-full"
+                  onClick={onClose}
                 >
-                  <motion.div
-                    initial={{ rotate: 0 }}
-                    animate={{ rotate: isDarkMode ? 180 : 0 }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                  >
-                    <IoSunnySharp
-                      className={`top-0 right-0 ${
-                        isDarkMode ? "text-yellow-400" : "text-[#01AA85]"
-                      } w-8 h-8 bg-white dark:bg-gray-700 p-1 rounded-full cursor-pointer`}
-                    />
-                  </motion.div>
+                  <IoMdClose color="#01AA85" className="w-[20px] h-[20px]" />
                 </div>
-                <div className="relative w-[100px] h-[100px] mb-4">
+                <div className="relative w-[100px] h-[100px] mb-4 ">
                   <img
                     src={avatar}
                     className="w-full h-full rounded-full object-cover border-2 border-[#01AA85]"
                     alt="User avatar"
                   />
                   <div
-                    className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-gray-100"
+                    className="absolute bottom-0 right-0 bg-white dark:bg-gray-700 border dark:border-gray-700 p-2 rounded-full shadow-lg cursor-pointer hover:bg-gray-100"
                     onClick={handleCameraClick}
                   >
                     {uploading ? (
@@ -217,7 +208,7 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
                         )}
                       </div>
                     ) : (
-                      <FiCamera className="text-[#01AA85] w-5 h-5" />
+                      <FiCamera className="text-[#01AA85] w-5 h-5 " />
                     )}
 
                     <input
@@ -231,7 +222,7 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
                 </div>
 
                 <button
-                  className="bg-[#D9F2ED] hover:bg-[#c0e8e1] text-[#01AA85] px-4 py-2 items-center flex justify-center rounded-lg cursor-pointer transition-colors"
+                  className="bg-[#D9F2ED] dark:bg-gray-700 border dark:border-gray-700 hover:bg-[#c0e8e1] text-[#01AA85] px-4 py-2 items-center flex justify-center rounded-lg cursor-pointer transition-colors"
                   onClick={() => openProfileEditModal(user)}
                 >
                   <FiEdit className="mr-2" /> Edit Profile

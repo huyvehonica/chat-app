@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -13,7 +13,6 @@ import Register from "./components/Register";
 import NavLinks from "./components/Navlinks";
 import ChatList from "./components/ChatList";
 import ChatBox from "./components/ChatBox";
-import SearchModal from "./components/SearchModal";
 import VideoCall from "./components/VideoCallPage";
 import IncomingCallNotification from "./components/IncomingCallNotification";
 
@@ -30,6 +29,15 @@ const App = () => {
 
   useEffect(() => {
     const unsubscribe = listenToAuthChanges();
+
+    // Check for dark mode preference in localStorage and apply it
+    const darkModePreference = localStorage.getItem("darkMode") === "true";
+    if (darkModePreference) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+
     return () => unsubscribe(); // Cleanup
   }, []);
 
@@ -45,56 +53,58 @@ const App = () => {
     <>
       <Router>
         {isLoggedIn && <IncomingCallNotification selectedUser={selectedUser} />}
-        <Routes>
-          <Route
-            path="/login"
-            element={!isLoggedIn ? <Login /> : <Navigate to="/chat" />}
-          />
-          <Route
-            path="/register"
-            element={!isLoggedIn ? <Register /> : <Navigate to="/chat" />}
-          />
-          <Route
-            path="/chat"
-            element={
-              isLoggedIn ? (
-                <div className="flex lg:flex-row flex-col items-start w-[100%]">
-                  <NavLinks />
-                  {isMobileView ? (
-                    showChatBox ? (
-                      <ChatBox
-                        selectedUser={selectedUser}
-                        onBack={() => setShowChatBox(false)}
-                      />
+        <div className="transition-colors duration-300">
+          <Routes>
+            <Route
+              path="/login"
+              element={!isLoggedIn ? <Login /> : <Navigate to="/chat" />}
+            />
+            <Route
+              path="/register"
+              element={!isLoggedIn ? <Register /> : <Navigate to="/chat" />}
+            />
+            <Route
+              path="/chat"
+              element={
+                isLoggedIn ? (
+                  <div className="flex lg:flex-row flex-col items-start w-[100%]">
+                    <NavLinks />
+                    {isMobileView ? (
+                      showChatBox ? (
+                        <ChatBox
+                          selectedUser={selectedUser}
+                          onBack={() => setShowChatBox(false)}
+                        />
+                      ) : (
+                        <ChatList
+                          setSelectedUser={(user) => {
+                            setSelectedUser(user);
+                            setShowChatBox(true);
+                          }}
+                        />
+                      )
                     ) : (
-                      <ChatList
-                        setSelectedUser={(user) => {
-                          setSelectedUser(user);
-                          setShowChatBox(true);
-                        }}
-                      />
-                    )
-                  ) : (
-                    <>
-                      <ChatList setSelectedUser={setSelectedUser} />
-                      <ChatBox selectedUser={selectedUser} />
-                    </>
-                  )}
-                </div>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-          <Route
-            path="/video-call"
-            element={isLoggedIn ? <VideoCall /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="*"
-            element={<Navigate to={isLoggedIn ? "/chat" : "/login"} />}
-          />
-        </Routes>
+                      <>
+                        <ChatList setSelectedUser={setSelectedUser} />
+                        <ChatBox selectedUser={selectedUser} />
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+            <Route
+              path="/video-call"
+              element={isLoggedIn ? <VideoCall /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="*"
+              element={<Navigate to={isLoggedIn ? "/chat" : "/login"} />}
+            />
+          </Routes>
+        </div>
       </Router>
       <Toaster position="top-right" />
     </>
