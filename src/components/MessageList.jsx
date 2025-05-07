@@ -731,6 +731,7 @@ const MessageList = ({
                   handleReaction={handleReaction}
                   showReactionBar={showReactionBar}
                   setShowReactionBar={setShowReactionBar}
+                  chatId={chatId}
                 />
               )}
             </div>

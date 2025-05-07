@@ -64,6 +64,23 @@ const RecipientMessage = ({
     };
   }, [showReactionBar, msg.messageId, setShowReactionBar]);
 
+  // Group reactions by emoji
+  const getGroupedReactions = () => {
+    if (!msg.reactions) return {};
+
+    const grouped = {};
+    Object.values(msg.reactions).forEach((reaction) => {
+      if (!grouped[reaction.emoji]) {
+        grouped[reaction.emoji] = [];
+      }
+      grouped[reaction.emoji].push(reaction);
+    });
+
+    return grouped;
+  };
+
+  const groupedReactions = getGroupedReactions();
+
   return (
     <div className="flex flex-col items-start w-full mb-4">
       <span className="flex gap-1 max-w-[70%] h-auto text-sx text-right">
@@ -171,15 +188,22 @@ const RecipientMessage = ({
               )}
 
               {!msg.isDeleted && msg.reactions && (
-                <div className="absolute right-0 translate-y-1/2 top-0 translate-x-1/2 bg-white p-1 rounded-full shadow text-sm flex gap-1 border border-gray-200">
-                  {Object.values(msg.reactions).map((reaction, i) => (
-                    <div
-                      key={i}
-                      className="bg-gray-100 rounded-full text-sm hover:bg-gray-200"
-                    >
-                      {reaction.emoji}
-                    </div>
-                  ))}
+                <div className="absolute right-0 translate-y-6 top-0 translate-x-1/2 bg-white rounded-full shadow text-sm flex gap-1 border border-gray-200">
+                  {Object.entries(groupedReactions).map(
+                    ([emoji, reactions]) => (
+                      <div
+                        key={emoji}
+                        className="bg-gray-100 rounded-full text-sm hover:bg-gray-200 flex items-center gap-[1px]"
+                      >
+                        <span>{emoji}</span>
+                        {reactions.length > 1 && (
+                          <span className="text-xs font-medium ml-0.5">
+                            {reactions.length}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </div>
