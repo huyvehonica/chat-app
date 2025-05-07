@@ -29,6 +29,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
   const isGroup = selectedUser?.type === "group";
   const groupData = isGroup ? selectedUser.data : null;
   const userData = isGroup ? null : selectedUser;
+  const [replyingTo, setReplyingTo] = useState(null);
 
   const scrollRef = useRef(null);
   const chatId = isGroup
@@ -119,6 +120,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
       return a.timestamp - b.timestamp; // Tăng dần
     });
   }, [messages]);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!sendMessageText.trim()) {
@@ -129,18 +131,6 @@ const ChatBox = ({ selectedUser, onBack }) => {
     setShouldScrollToBottom(true);
     setUserScrolling(false); // Đảm bảo rằng khi gửi tin nhắn mới, trạng thái cuộn được reset
 
-    const newMessage = {
-      sender: senderEmail,
-      text: sendMessageText,
-      timestamp: {
-        seconds: Math.floor(Date.now() / 1000),
-        nanoseconds: 0,
-      },
-    };
-
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    setSendMessageText("");
-
     try {
       if (isGroup) {
         // Send message to group
@@ -148,10 +138,15 @@ const ChatBox = ({ selectedUser, onBack }) => {
       } else {
         await sendMessage(sendMessageText, chatId, user1, user2);
       }
+
+      // Reset input field after sending
+      setSendMessageText("");
+      setReplyingTo(null); // Reset trạng thái replyingTo sau khi gửi tin nhắn
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
+
   const handleVideoCall = async () => {
     if (!auth.currentUser) {
       return;
@@ -250,7 +245,9 @@ const ChatBox = ({ selectedUser, onBack }) => {
             handleSendMessage={handleSendMessage}
             selectedUser={selectedUser}
             chatId={chatId}
-            onScroll={handleUserScroll} // Thêm handler cho sự kiện cuộn
+            onScroll={handleUserScroll}
+            setReplyingTo={setReplyingTo}
+            replyingTo={replyingTo}
           />
         </section>
       ) : (

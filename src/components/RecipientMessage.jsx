@@ -8,6 +8,7 @@ import { rtdb } from "../firebase/firebase"; // Import Firebase instance
 import formatTimestamp from "../utils/formatTimestamp";
 import { FaRegSmile } from "react-icons/fa";
 import ReactionBar from "./ReactionBar";
+import { CornerUpLeft } from "lucide-react";
 
 const RecipientMessage = ({
   msg,
@@ -21,6 +22,9 @@ const RecipientMessage = ({
   handleReaction,
   showReactionBar,
   setShowReactionBar,
+  chatId,
+  setReplyingTo,
+  messages,
 }) => {
   const [senderInfo, setSenderInfo] = useState(null);
   const [messageMenuOpen, setMessageMenuOpen] = useState(false);
@@ -90,6 +94,60 @@ const RecipientMessage = ({
           className="h-10 w-10 object-cover rounded-full"
         />
         <div>
+          {/* Display reply preview if this is a reply to another message */}
+          {msg.replyTo && (
+            <div
+              className="bg-gray-100 p-2 rounded-t-lg border-l-4 border-teal-500 mb-1 max-w-[250px] cursor-pointer hover:bg-gray-200 transition-colors"
+              onClick={() => {
+                // Find the message being replied to
+                const originalMessage = messages.find(
+                  (m) => m.messageId === msg.replyTo
+                );
+                if (originalMessage) {
+                  // Get the element for the original message
+                  const originalMessageElement = document.getElementById(
+                    `message-${msg.replyTo}`
+                  );
+                  if (originalMessageElement) {
+                    // Scroll to the message
+                    originalMessageElement.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                    // Highlight the message briefly
+                    originalMessageElement.classList.add("highlight-message");
+                    setTimeout(() => {
+                      originalMessageElement.classList.remove(
+                        "highlight-message"
+                      );
+                    }, 2000);
+                  }
+                }
+              }}
+            >
+              <div className="flex items-start gap-1">
+                <CornerUpLeft
+                  className="text-teal-500 mt-0.5 flex-shrink-0"
+                  size={12}
+                />
+                <div className="overflow-hidden">
+                  <p className="text-xs text-teal-600 font-medium truncate">
+                    {msg.replyToSender === msg.sender
+                      ? "Replied to themselves"
+                      : msg.replyToSenderName || "Replied to message"}
+                  </p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {msg.replyToType === "image"
+                      ? "📷 Image"
+                      : msg.replyToType === "file"
+                      ? `📎 ${msg.replyToName || "File"}`
+                      : msg.replyToText}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Recipient's file message */}
           {msg.type === "image" ? (
             <div className="relative">
@@ -154,6 +212,33 @@ const RecipientMessage = ({
                     }}
                   >
                     <BsThreeDots size={16} color="#555" />
+                    {messageMenuOpen && (
+                      <div className="absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 w-40 z-50 message-menu-container">
+                        <ul className="text-sm text-gray-700">
+                          {msg.isDeleted ? (
+                            <li className="p-2 text-gray-400 cursor-not-allowed">
+                              Cannot reply to deleted message
+                            </li>
+                          ) : (
+                            <li
+                              className="p-2 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => {
+                                setReplyingTo(msg);
+                                setMessageMenuOpen(false);
+                                // Focus on the message input
+                                setTimeout(() => {
+                                  document
+                                    .querySelector('input[type="text"]')
+                                    .focus();
+                                }, 100);
+                              }}
+                            >
+                              Reply
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                   <div
                     ref={reactionButtonRef}

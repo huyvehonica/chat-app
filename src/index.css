@@ -41,6 +41,24 @@ img {
   }
 }
 
+/* Message highlight animation when navigating to a reply */
+@keyframes highlight-pulse {
+  0% {
+    background-color: rgba(1, 170, 133, 0.1);
+  }
+  50% {
+    background-color: rgba(1, 170, 133, 0.3);
+  }
+  100% {
+    background-color: rgba(1, 170, 133, 0);
+  }
+}
+
+.highlight-message {
+  animation: highlight-pulse 2s ease-in-out;
+  border-radius: 0.5rem;
+}
+
 /* Hiệu ứng cho nút chuyển đổi dark mode */
 @keyframes spin-in {
   0% {

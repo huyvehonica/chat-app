@@ -133,7 +133,7 @@ const IncomingCallNotification = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 ">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-md">
+      <div className="bg-white dark:bg-gray-700 border dark:border-gray-700  rounded-lg shadow-xl p-6 w-[90%] max-w-md">
         <div className="flex flex-col items-center">
           <div className="w-22 h-22 rounded-full bg-teal-100 flex items-center justify-center mb-4">
             <img
@@ -148,10 +148,10 @@ const IncomingCallNotification = () => {
               className="w-18 h-18 rounded-full object-cover"
             />
           </div>
-          <h3 className="text-xl text-gray-600 font-semibold mb-1">
+          <h3 className="text-xl dark:text-white text-gray-600 font-semibold mb-1">
             {isGroupCall ? "Incoming Group Video Call" : "Incoming Video Call"}
           </h3>
-          <h2 className="text-gray-600 mb-6 scroll-m-20 pb-2 text-3xl font-semibold tracking-tight first:mt-0">
+          <h2 className="text-gray-600 dark:text-white mb-6 scroll-m-20 pb-2 text-3xl font-semibold tracking-tight first:mt-0">
             {isGroupCall
               ? `${callerName} is calling you in ${groupName}`
               : `${callerName} is calling you`}

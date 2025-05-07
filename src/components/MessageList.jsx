@@ -11,7 +11,7 @@ import {
 } from "firebase/storage";
 import { listenForGroupMessages, rtdb, storage } from "../firebase/firebase";
 import { RemoveMessageDialogComponent } from "./RemoveMessageDialogComponent";
-import { LucideUploadCloud, Mic, MicOff } from "lucide-react";
+import { LucideUploadCloud, Mic, MicOff, CornerUpLeft } from "lucide-react";
 import { LuFile, LuDownload } from "react-icons/lu";
 import { CgSpinner } from "react-icons/cg";
 import toast from "react-hot-toast";
@@ -34,7 +34,9 @@ const MessageList = ({
   handleSendMessage,
   selectedUser,
   chatId,
-  onScroll, // Thêm prop onScroll
+  onScroll,
+  setReplyingTo,
+  replyingTo,
 }) => {
   const [activeMenu, setActiveMenu] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -47,6 +49,7 @@ const MessageList = ({
   const [selectedImage, setSelectedImage] = useState(null);
   const [isSpeechActive, setIsSpeechActive] = useState(false);
   const [prevTranscript, setPrevTranscript] = useState(""); // Track previous transcript
+  // Store the message being replied to
 
   const chatBoxRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -140,6 +143,16 @@ const MessageList = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [messageWithOpenMenu, messageWithOpenEmoji]);
+
+  // Effect to store reply data in a global variable when replying to a message
+  useEffect(() => {
+    if (replyingTo) {
+      // Store reply data in the window object so it can be accessed by ChatBox
+      window.replyingToMessage = replyingTo;
+    } else {
+      window.replyingToMessage = null;
+    }
+  }, [replyingTo]);
 
   // Toggle speech recognition
   const toggleSpeechRecognition = () => {
@@ -422,6 +435,7 @@ const MessageList = ({
 
     // Call the original handleSendMessage function
     handleSendMessage(e);
+    // Reset replyingTo state after sending message
   };
 
   // Cleanup speech recognition on component unmount
@@ -472,7 +486,8 @@ const MessageList = ({
           {messages?.map((msg, index) => (
             <div
               key={msg.messageId}
-              className="relative group"
+              id={`message-${msg.messageId}`}
+              className="relative group message-container"
               onMouseEnter={() => setHoveredMessage(index)}
               onMouseLeave={() => setHoveredMessage(null)}
             >
@@ -561,7 +576,66 @@ const MessageList = ({
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-white relative flex justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
+                        <div className="bg-white relative flex flex-col justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
+                          {/* Display reply preview if this is a reply to another message */}
+                          {msg.replyTo && (
+                            <div
+                              className="bg-gray-100 p-2 rounded-t-lg border-l-4 border-teal-500 mb-2 max-w-full cursor-pointer hover:bg-gray-200 transition-colors"
+                              onClick={() => {
+                                // Find the message being replied to
+                                const originalMessage = messages.find(
+                                  (m) => m.messageId === msg.replyTo
+                                );
+                                if (originalMessage) {
+                                  // Get the element for the original message
+                                  const originalMessageElement =
+                                    document.getElementById(
+                                      `message-${msg.replyTo}`
+                                    );
+                                  if (originalMessageElement) {
+                                    // Scroll to the message
+                                    originalMessageElement.scrollIntoView({
+                                      behavior: "smooth",
+                                      block: "center",
+                                    });
+                                    // Highlight the message briefly
+                                    originalMessageElement.classList.add(
+                                      "highlight-message"
+                                    );
+                                    setTimeout(() => {
+                                      originalMessageElement.classList.remove(
+                                        "highlight-message"
+                                      );
+                                    }, 2000);
+                                  }
+                                }
+                              }}
+                            >
+                              <div className="flex items-start gap-1">
+                                <CornerUpLeft
+                                  className="text-teal-500 mt-0.5 flex-shrink-0"
+                                  size={12}
+                                />
+                                <div className="overflow-hidden">
+                                  <p className="text-xs text-teal-600 font-medium truncate">
+                                    {msg.replyToSender === msg.sender
+                                      ? "Replied to yourself"
+                                      : msg.replyToSenderName
+                                      ? `Replied to ${msg.replyToSenderName}`
+                                      : "Replied to message"}
+                                  </p>
+                                  <p className="text-xs text-gray-600 truncate">
+                                    {msg.replyToType === "image"
+                                      ? "📷 Image"
+                                      : msg.replyToType === "file"
+                                      ? `📎 ${msg.replyToName || "File"}`
+                                      : msg.replyToText}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {editingMessageId === msg.messageId ? (
                             <input
                               value={editText}
@@ -613,6 +687,8 @@ const MessageList = ({
                               </div>
                             </div>
                           )}
+
+                          {/* Controls and reactions - unchanged */}
                           {(hoveredMessage === index ||
                             messageWithOpenMenu === msg.messageId ||
                             messageWithOpenEmoji === msg.messageId) && (
@@ -643,9 +719,18 @@ const MessageList = ({
                                         <>
                                           <li
                                             className="p-2 hover:bg-gray-100 cursor-pointer"
-                                            onClick={() =>
-                                              console.log("Reply clicked")
-                                            }
+                                            onClick={() => {
+                                              setReplyingTo(msg);
+                                              setMessageWithOpenMenu(null);
+                                              // Focus on the message input
+                                              setTimeout(() => {
+                                                document
+                                                  .querySelector(
+                                                    'input[type="text"]'
+                                                  )
+                                                  .focus();
+                                              }, 100);
+                                            }}
                                           >
                                             Reply
                                           </li>
@@ -732,6 +817,8 @@ const MessageList = ({
                   showReactionBar={showReactionBar}
                   setShowReactionBar={setShowReactionBar}
                   chatId={chatId}
+                  setReplyingTo={setReplyingTo}
+                  messages={messages}
                 />
               )}
             </div>
@@ -769,6 +856,41 @@ const MessageList = ({
         </div>
       )}
       <div className="sticky lg:bottom-0 bottom-[20px] p-3 h-fit w-full">
+        {/* Reply UI */}
+        {replyingTo && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-2 mb-2 shadow-md border-l-4 border-teal-500 relative MessageList_replyingTo">
+            <button
+              onClick={() => {
+                setReplyingTo(null);
+                window.replyingToMessage = null;
+              }}
+              className="absolute right-2 top-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              &times;
+            </button>
+            <div className="flex items-start gap-2">
+              <CornerUpLeft
+                className="text-teal-500 mt-1 flex-shrink-0"
+                size={16}
+              />
+              <div className="flex-1 overflow-hidden">
+                <p className="text-xs text-teal-600 dark:text-teal-400 font-medium">
+                  Replying to{" "}
+                  {replyingTo.sender === senderEmail
+                    ? "yourself"
+                    : selectedUser?.fullName || "User"}
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                  {replyingTo.type === "image"
+                    ? "📷 Image"
+                    : replyingTo.type === "file"
+                    ? `📎 ${replyingTo.name}`
+                    : replyingTo.text}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div>
           <form
             onSubmit={handleSendMessageWithSpeech}

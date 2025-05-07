@@ -103,13 +103,48 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
       lastMessageTimestamp: serverTimestamp(),
     }); // Cập nhật tin nhắn cuối cùng
   }
+
+  // Check if this is a reply message
+  const replyData = window.replyingToMessage;
+
   const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
   const newMessageRef = push(messagesRef);
-  await set(newMessageRef, {
+
+  // Create message data
+  const messageData = {
     text: messagesText,
-    sender: user1, // Hoặc lấy từ auth.currentUser.email nếu người gửi là người dùng hiện tại
+    sender: user1,
     timestamp: serverTimestamp(),
-  });
+  };
+
+  // Add reply information if present
+  if (replyData) {
+    messageData.replyTo = replyData.messageId;
+    messageData.replyToSender = replyData.sender;
+    messageData.replyToText = replyData.text;
+
+    // For user display names, get the sender name if available
+    if (replyData.sender) {
+      const userRef = ref(rtdb, `users/${replyData.sender}`);
+      const userSnapshot = await get(userRef);
+      if (userSnapshot.exists()) {
+        messageData.replyToSenderName = userSnapshot.val().fullName || "User";
+      }
+    }
+
+    // Handle different message types in replies
+    if (replyData.type) {
+      messageData.replyToType = replyData.type;
+      if (replyData.type === "file" || replyData.type === "image") {
+        messageData.replyToName = replyData.name;
+      }
+    }
+
+    // Reset reply data
+    window.replyingToMessage = null;
+  }
+
+  await set(newMessageRef, messageData);
 };
 
 // Initialize Firebase
@@ -336,15 +371,51 @@ export const sendGroupMessage = async (messageText, groupId) => {
     lastMessageTimestamp: serverTimestamp(),
   });
 
-  // Thêm tin nhắn mới vào danh sách tin nhắn của nhóm
-  const messagesRef = ref(rtdb, `groups/${groupId}/messages`);
-  const newMessageRef = push(messagesRef);
-  await set(newMessageRef, {
+  // Check if this is a reply message
+  const replyData = window.replyingToMessage;
+
+  // Create message data
+  const messageData = {
     text: messageText,
     sender: currentUserId,
     senderName: currentUserName, // Lưu tên người gửi
     timestamp: serverTimestamp(),
-  });
+  };
+
+  // Add reply information if present
+  if (replyData) {
+    messageData.replyTo = replyData.messageId;
+    messageData.replyToSender = replyData.sender;
+    messageData.replyToText = replyData.text;
+
+    // For user display names, get the sender name if available
+    if (replyData.sender) {
+      const repliedUserRef = ref(rtdb, `users/${replyData.sender}`);
+      const repliedUserSnapshot = await get(repliedUserRef);
+      if (repliedUserSnapshot.exists()) {
+        messageData.replyToSenderName =
+          repliedUserSnapshot.val().fullName || "User";
+      } else {
+        messageData.replyToSenderName = replyData.senderName || "User";
+      }
+    }
+
+    // Handle different message types in replies
+    if (replyData.type) {
+      messageData.replyToType = replyData.type;
+      if (replyData.type === "file" || replyData.type === "image") {
+        messageData.replyToName = replyData.name;
+      }
+    }
+
+    // Reset reply data
+    window.replyingToMessage = null;
+  }
+
+  // Thêm tin nhắn mới vào danh sách tin nhắn của nhóm
+  const messagesRef = ref(rtdb, `groups/${groupId}/messages`);
+  const newMessageRef = push(messagesRef);
+  await set(newMessageRef, messageData);
 };
 
 // Hàm thêm thành viên vào nhóm
