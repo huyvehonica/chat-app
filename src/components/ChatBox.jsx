@@ -23,6 +23,9 @@ import chatData from "../data/chatData";
 const ChatBox = ({ selectedUser, onBack }) => {
   const [messages, setMessages] = useState([]);
   const [sendMessageText, setSendMessageText] = useState("");
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+  const [userScrolling, setUserScrolling] = useState(false); // Thêm trạng thái để theo dõi khi người dùng đang cuộn
+  const [scrollTimeout, setScrollTimeout] = useState(null); // Theo dõi timeout để tránh trigger cuộn liên tục
   const isGroup = selectedUser?.type === "group";
   const groupData = isGroup ? selectedUser.data : null;
   const userData = isGroup ? null : selectedUser;
@@ -44,26 +47,73 @@ const ChatBox = ({ selectedUser, onBack }) => {
 
     let unsubscribe;
     if (isGroup) {
-      // Lắng nghe tin nhắn nhóm
-      unsubscribe = listenForGroupMessages(chatId, setMessages);
+      // Sử dụng wrapper function để kiểm soát việc cuộn
+      unsubscribe = listenForGroupMessages(chatId, (newMessages) => {
+        // Không trigger cuộn khi nhận tin nhắn từ người khác
+        setMessages(newMessages);
+      });
     } else {
-      // Lắng nghe tin nhắn cá nhân
-      unsubscribe = listenForMessages(chatId, setMessages);
+      unsubscribe = listenForMessages(chatId, (newMessages) => {
+        setMessages(newMessages);
+      });
     }
 
-    // Hủy đăng ký khi component unmount
     return () => {
       if (unsubscribe) unsubscribe();
     };
   }, [chatId, isGroup]);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      setTimeout(() => {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }, 0); // Trì hoãn để đảm bảo DOM đã được cập nhật
+  // Hàm bắt sự kiện cuộn thủ công của người dùng - sửa lại logic
+  const handleUserScroll = () => {
+    if (!scrollRef.current) return;
+
+    // Đánh dấu người dùng đang cuộn
+    setUserScrolling(true);
+
+    // Xóa timeout cũ nếu có
+    if (scrollTimeout) {
+      clearTimeout(scrollTimeout);
     }
-  }, [messages]);
+
+    // Thiết lập timeout mới để đánh dấu người dùng đã dừng cuộn
+    const newTimeout = setTimeout(() => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      // Chỉ khi người dùng đã cuộn gần đến cuối (trong vòng 100px) và đã dừng cuộn
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+      if (isNearBottom) {
+        setShouldScrollToBottom(true);
+      }
+
+      setUserScrolling(false);
+      setScrollTimeout(null);
+    }, 300); // Đợi 300ms để xác định người dùng đã dừng cuộn
+
+    setScrollTimeout(newTimeout);
+  };
+
+  // Effect chỉ cuộn xuống khi shouldScrollToBottom = true và người dùng không đang cuộn
+  useEffect(() => {
+    if (scrollRef.current && shouldScrollToBottom && !userScrolling) {
+      const timer = setTimeout(() => {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        // Chỉ reset shouldScrollToBottom nếu không phải là tin nhắn mới
+        setShouldScrollToBottom(false);
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [messages, shouldScrollToBottom, userScrolling]);
+
+  // Cleanup timeouts khi component unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+    };
+  }, [scrollTimeout]);
+
   const sortedMessages = useMemo(() => {
     return [...messages].sort((a, b) => {
       return a.timestamp - b.timestamp; // Tăng dần
@@ -74,6 +124,11 @@ const ChatBox = ({ selectedUser, onBack }) => {
     if (!sendMessageText.trim()) {
       return;
     }
+
+    // Kích hoạt cuộn xuống dưới khi gửi tin nhắn mới
+    setShouldScrollToBottom(true);
+    setUserScrolling(false); // Đảm bảo rằng khi gửi tin nhắn mới, trạng thái cuộn được reset
+
     const newMessage = {
       sender: senderEmail,
       text: sendMessageText,
@@ -134,8 +189,8 @@ const ChatBox = ({ selectedUser, onBack }) => {
     <>
       {selectedUser ? (
         <section className="relative flex flex-col items-start justify-start h-screen w-[100%] background-image">
-          <header className=" border-b border-gray-200 w-[100%] h-[81px] m:h-fit p-4 bg-white">
-            <main className="  flex items-center gap-3 jus">
+          <header className=" border-b border-gray-200 w-[100%] h-[81px] m:h-fit p-4 bg-white z-50">
+            <main className=" flex items-center gap-3 jus">
               <button
                 className="p-2 rounded-full hover:bg-[#D9F2ED] block md:hidden"
                 onClick={onBack}
@@ -187,6 +242,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
             handleSendMessage={handleSendMessage}
             selectedUser={selectedUser}
             chatId={chatId}
+            onScroll={handleUserScroll} // Thêm handler cho sự kiện cuộn
           />
         </section>
       ) : (

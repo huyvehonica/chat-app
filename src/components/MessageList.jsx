@@ -34,6 +34,7 @@ const MessageList = ({
   handleSendMessage,
   selectedUser,
   chatId,
+  onScroll, // Thêm prop onScroll
 }) => {
   const [activeMenu, setActiveMenu] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -55,18 +56,28 @@ const MessageList = ({
   const [messageWithOpenMenu, setMessageWithOpenMenu] = useState(null);
   const [messageWithOpenEmoji, setMessageWithOpenEmoji] = useState(null);
   const handleReaction = async (messageId, emoji) => {
-    const messageRef = dbRef(
-      rtdb,
-      `chats/${chatId}/messages/${messageId}/reactions/${senderEmail.replace(
-        /[.#$\/[\]]/g,
-        "_"
-      )}`
-    );
+    // Xác định xem đây là chat 1-1 hay chat nhóm dựa theo selectedUser
+    const isGroupChat = selectedUser?.type === "group";
+
+    // Tạo đường dẫn tới nút reaction phù hợp
+    const reactionPath = isGroupChat
+      ? `groups/${chatId}/messages/${messageId}/reactions/${senderEmail.replace(
+          /[.#$\/[\]]/g,
+          "_"
+        )}`
+      : `chats/${chatId}/messages/${messageId}/reactions/${senderEmail.replace(
+          /[.#$\/[\]]/g,
+          "_"
+        )}`;
+
+    const messageRef = dbRef(rtdb, reactionPath);
+
     await set(messageRef, {
       emoji,
       timestamp: Date.now(),
       userId: senderEmail,
     });
+
     setShowReactionBar(null); // Hide reaction bar after selecting
   };
   // Speech recognition setup
@@ -108,9 +119,17 @@ const MessageList = ({
         setMessageWithOpenMenu(null);
       }
 
-      // Check if clicking on reaction bar
+      // Check if clicking on reaction bar or its container
       const isClickingOnReactionBar = event.target.closest(".reaction-bar");
-      if (!isClickingOnReactionBar && messageWithOpenEmoji !== null) {
+      const isClickingOnReactionContainer = event.target.closest(
+        ".reaction-bar-container"
+      );
+
+      if (
+        !isClickingOnReactionBar &&
+        !isClickingOnReactionContainer &&
+        messageWithOpenEmoji !== null
+      ) {
         setShowReactionBar(null);
         setMessageWithOpenEmoji(null);
       }
@@ -180,13 +199,6 @@ const MessageList = ({
       return () => unsubscribe();
     }
   }, [chatId, selectedUser]);
-  useEffect(() => {
-    if (scrollRef.current) {
-      setTimeout(() => {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }, 0);
-    }
-  }, [messages]);
 
   const editMessage = async (chatId, messageId, newText) => {
     const messageRef = dbRef(rtdb, `chats/${chatId}/messages/${messageId}`);
@@ -420,6 +432,19 @@ const MessageList = ({
       }
     };
   }, [listening]);
+
+  // Thêm handler cho sự kiện cuộn
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+
+    if (scrollContainer && onScroll) {
+      scrollContainer.addEventListener("scroll", onScroll);
+
+      return () => {
+        scrollContainer.removeEventListener("scroll", onScroll);
+      };
+    }
+  }, [scrollRef, onScroll]);
 
   console.log("Messages:", messages);
 
@@ -664,7 +689,7 @@ const MessageList = ({
                               >
                                 <FaRegSmile size={16} color="#555" />
                                 {showReactionBar === msg.messageId && (
-                                  <div className="absolute -left-40 top-1/5 reaction-bar-container z-50">
+                                  <div className="absolute -left-40 top-1/5 reaction-bar-container z-1000">
                                     <ReactionBar
                                       className="right-[120px] top-1/2 -translate-y-1/2 mr-500"
                                       onSelectReaction={(emoji) => {

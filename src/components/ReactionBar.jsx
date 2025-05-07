@@ -8,7 +8,7 @@ const ReactionBar = ({ onSelectReaction, position = "bottom" }) => {
     <div
       className={`absolute ${
         position === "top" ? "bottom-full mb-2" : "top-full mt-2"
-      } left-0 z-30 bg-white rounded-full shadow-lg px-2 py-1 flex items-center gap-1`}
+      } left-0 z-1000 bg-white rounded-full shadow-lg px-2 py-1 flex items-center gap-1`}
     >
       {defaultReactions.map((emoji) => (
         <button

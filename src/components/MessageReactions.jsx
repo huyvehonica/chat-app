@@ -44,10 +44,19 @@ const MessageReactions = ({ message, chatId, showCount = true }) => {
     const userReaction = getReactionsArray().find(
       (r) => r.userId === currentUser.uid
     );
-    const reactionRef = ref(
-      rtdb,
-      `chats/${chatId}/messages/${message.messageId}/reactions/${currentUser.uid}`
-    );
+
+    // Determine if this is a group chat message or regular chat message based on the message structure
+    const isGroupChat =
+      message.sender &&
+      typeof message.sender === "string" &&
+      !message.sender.includes("@");
+
+    // Create the appropriate reference path
+    const reactionPath = isGroupChat
+      ? `groups/${chatId}/messages/${message.messageId}/reactions/${currentUser.uid}`
+      : `chats/${chatId}/messages/${message.messageId}/reactions/${currentUser.uid}`;
+
+    const reactionRef = ref(rtdb, reactionPath);
 
     if (userReaction && userReaction.emoji === emoji) {
       // Remove reaction if clicking the same emoji
