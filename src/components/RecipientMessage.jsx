@@ -213,7 +213,7 @@ const RecipientMessage = ({
                   >
                     <BsThreeDots size={16} color="#555" />
                     {messageMenuOpen && (
-                      <div className="absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 w-40 z-50 message-menu-container">
+                      <div className="absolute top-8 -right-35 bg-white shadow-lg rounded-lg p-2 w-40 z-50 message-menu-container">
                         <ul className="text-sm text-gray-700">
                           {msg.isDeleted ? (
                             <li className="p-2 text-gray-400 cursor-not-allowed">
