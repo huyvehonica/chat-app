@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   auth,
@@ -8,6 +8,7 @@ import {
 } from "../firebase/firebase";
 import { RiPhoneFill, RiCloseLine } from "react-icons/ri";
 import { ref, get } from "firebase/database";
+import ringtoneSound from "../assets/ringtone.mp3";
 
 const IncomingCallNotification = () => {
   const [incomingCall, setIncomingCall] = useState(null);
@@ -15,12 +16,11 @@ const IncomingCallNotification = () => {
   const [userImage, setImage] = useState(null);
   const [isGroupCall, setIsGroupCall] = useState(false);
   const [groupName, setGroupName] = useState("");
+  const audioRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!auth.currentUser) return;
-
-    let audio;
 
     const unsubscribe = listenForIncomingCalls(
       auth.currentUser.uid,
@@ -86,24 +86,57 @@ const IncomingCallNotification = () => {
           return;
         }
 
-        // Play ringtone for all call types
-        audio = new Audio("/ringtone.mp3");
+        // Play ringtone for all call types - fixed path by using imported audio file
+        const audio = new Audio(ringtoneSound);
+        audio.volume = 0.5; // Set volume to 50%
+        audio.muted = false; // Ensure audio is not muted
         audio.loop = true;
-        audio.play().catch((e) => console.error("Could not play ringtone:", e));
+        audioRef.current = audio;
+
+        try {
+          // Preload the audio file before playing
+          await audio.load();
+          await audio.play();
+          console.log("Ringtone playing successfully");
+        } catch (e) {
+          console.error("Could not play ringtone:", e);
+          // Try alternative approach as fallback
+          const fallbackAudio = document.createElement("audio");
+          fallbackAudio.src = "/src/assets/ringtone.mp3";
+          fallbackAudio.loop = true;
+          fallbackAudio.volume = 0.5;
+          document.body.appendChild(fallbackAudio);
+          audioRef.current = fallbackAudio;
+          fallbackAudio
+            .play()
+            .catch((err) => console.error("Fallback audio failed:", err));
+        }
       }
     );
 
     return () => {
       unsubscribe();
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
       }
     };
   }, [auth.currentUser]);
 
+  const stopRingtone = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+  };
+
   const handleAcceptCall = async () => {
     if (!incomingCall) return;
+    
+    // Stop ringtone first
+    stopRingtone();
 
     await updateCallStatus(incomingCall.callId, "accepted");
 
@@ -118,12 +151,14 @@ const IncomingCallNotification = () => {
         `/video-call?callId=${incomingCall.callId}&callerUserID=${incomingCall.callerUid}&calleeUserID=${auth.currentUser.uid}`
       );
     }
-
     setIncomingCall(null);
   };
 
   const handleRejectCall = async () => {
     if (!incomingCall) return;
+    
+    // Stop ringtone first
+    stopRingtone();
 
     await updateCallStatus(incomingCall.callId, "rejected");
     setIncomingCall(null);

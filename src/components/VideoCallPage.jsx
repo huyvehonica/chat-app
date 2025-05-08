@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   TUICallKit,
   TUICallKitServer,
@@ -29,6 +29,8 @@ const VideoCallPage = () => {
   const calleeUserID = searchParams.get("calleeUserID");
   const isGroup = searchParams.get("isGroup") === "true";
   const groupId = searchParams.get("groupId");
+  // Create a ref to store the autoAccept state
+  const shouldAutoAccept = useRef(callId && calleeUserID === auth.currentUser?.uid);
 
   const [initSuccess, setInitSuccess] = useState(false);
   const [currentUserID, setCurrentUserID] = useState("");
@@ -76,6 +78,23 @@ const VideoCallPage = () => {
         }
 
         setInitSuccess(true);
+        
+        // If this is a received call that was already accepted via IncomingCallNotification
+        // We'll attempt to auto-accept after a short delay to ensure TUICallKit is ready
+        if (shouldAutoAccept.current) {
+          console.log("Call was pre-accepted, will try to auto-accept in TUICallKit");
+          setTimeout(() => {
+            try {
+              // Direct call to accept the incoming call
+              console.log("Attempting to auto-accept call in TUICallKit");
+              TUICallKitServer.accept()
+                .then(() => console.log("Call auto-accepted successfully"))
+                .catch(err => console.error("Auto-accept failed:", err));
+            } catch (error) {
+              console.error("Error during auto-accept:", error);
+            }
+          }, 1000); // Give TUICallKit a second to register the incoming call
+        }
       } catch (err) {
         console.error("TUICallKit init failed:", err);
       }
@@ -89,7 +108,7 @@ const VideoCallPage = () => {
         endCall(callId).catch(console.error);
       }
     };
-  }, [navigate]);
+  }, [navigate, callId, calleeUserID]);
 
   // Handle call initiation or joining
   useEffect(() => {
@@ -189,7 +208,6 @@ const VideoCallPage = () => {
 
         setCallInitiated(true);
       } catch (error) {
-        console.log("Fucknig shitttt");
         console.error("Error making or joining call:", error);
         alert("Failed to connect: " + error.message);
         navigate("/chat");

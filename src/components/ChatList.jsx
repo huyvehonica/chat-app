@@ -124,7 +124,7 @@ const ChatList = ({ setSelectedUser }) => {
   };
   return (
     <section className="relative lg:flex flex-col items-start justify-start border-r bg-white dark:bg-gray-900 dark:border-gray-700 h-[100vh] w-[100%] lg:w-[600px]">
-      <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0 z-[50] border-r border-[#9090902c] dark:border-gray-700 dark:bg-gray-900">
+      <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0  border-r border-[#9090902c] dark:border-gray-700 dark:bg-gray-900">
         <main
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => openProfileModal(user)}
