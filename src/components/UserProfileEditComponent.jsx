@@ -57,7 +57,7 @@ export function UserProfileEditComponent({ isOpen, onClose, user }) {
             <Input
               id="name"
               value={fullName}
-              className="col-span-3 bg-[#01aa851d] text-[#004939f3]"
+              className="col-span-3 bg-[#01aa851d] text-[#004939f3] dark:text-white"
               onChange={(e) => setFullName(e.target.value)}
             />
           </div>
@@ -68,14 +68,14 @@ export function UserProfileEditComponent({ isOpen, onClose, user }) {
             <Input
               id="username"
               value={username}
-              className="col-span-3 bg-[#01aa851d] text-[#004939f3]"
+              className="col-span-3 bg-[#01aa851d] text-[#004939f3] dark:text-white"
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
         </div>
         <DialogFooter>
           <Button
-            className="bg-[#01aa85]"
+            className="bg-[#01aa85] dark:text-white"
             type="submit"
             onClick={handleSaveChanges}
           >

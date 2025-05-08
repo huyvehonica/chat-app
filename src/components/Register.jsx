@@ -68,9 +68,11 @@ const Register = ({ isLogin, setIsLogin }) => {
     }
   };
   return (
-    <section className="flex flex-col justify-center items-center h-[100vh] background-image">
-      <div className="bg-white shadow-lg p-5 rounded-xl h-[27rem] w-[20rem] flex flex-col justify-center items-center">
-        <h1 className="text-center text-[28px] font-bold ">Sign Up</h1>
+    <section className="flex flex-col dark:bg-gray-900 justify-center items-center min-h-screen  background-image">
+      <div className="bg-white shadow-lg p-5 dark:bg-gray-700 rounded-xl w-80 md:w-90 flex flex-col justify-center items-center">
+        <h1 className="text-center text-[28px] dark:text-white font-bold ">
+          Sign Up
+        </h1>
         <p className="text-center text-sm text-gray-400 mb-10">
           Welcome, create an account to continue
         </p>
@@ -89,11 +91,11 @@ const Register = ({ isLogin, setIsLogin }) => {
                   message: "Full name must be at least 3 characters",
                 },
               })}
-              className={`border w-full p-2 rounded-md ${
+              className={`border dark:text-white w-full p-2 rounded-md ${
                 errors.fullName
-                  ? "border-red-500 bg-red-50"
+                  ? "border-red-500 "
                   : "border-green-200 bg-[#01aa851d]"
-              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958]`}
+              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958] dark:placeholder:text-white`}
               placeholder="Full Name"
             />
             {errors.fullName && (
@@ -114,11 +116,11 @@ const Register = ({ isLogin, setIsLogin }) => {
                   message: "Invalid email address",
                 },
               })}
-              className={`border w-full p-2 rounded-md ${
+              className={`border dark:text-white w-full p-2 rounded-md ${
                 errors.email
-                  ? "border-red-500 bg-red-50"
+                  ? "border-red-500 "
                   : "border-green-200 bg-[#01aa851d]"
-              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958]`}
+              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958] dark:placeholder:text-white`}
               placeholder="Email"
             />
             {errors.email && (
@@ -139,11 +141,11 @@ const Register = ({ isLogin, setIsLogin }) => {
                   message: "Password must be at least 6 characters",
                 },
               })}
-              className={`border w-full p-2 rounded-md ${
+              className={`border dark:text-white w-full p-2 rounded-md ${
                 errors.password
-                  ? "border-red-500 bg-red-50"
+                  ? "border-red-500"
                   : "border-green-200 bg-[#01aa851d]"
-              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958]`}
+              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958] dark:placeholder:text-white`}
               placeholder="Password"
             />
             {errors.password && (
@@ -160,11 +162,11 @@ const Register = ({ isLogin, setIsLogin }) => {
                 validate: (value) =>
                   value === watch("password") || "Passwords do not match",
               })}
-              className={`border w-full p-2 rounded-md ${
+              className={`border dark:text-white w-full p-2 rounded-md ${
                 errors.rePassword
-                  ? "border-red-500 bg-red-50"
+                  ? "border-red-500 "
                   : "border-green-200 bg-[#01aa851d]"
-              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958]`}
+              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958] dark:placeholder:text-white`}
               placeholder="Re-enter Password"
             />
             {errors.rePassword && (

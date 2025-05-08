@@ -229,7 +229,7 @@ const UserProfileModal = ({ isOpen, onClose, user }) => {
                 </button>
               </div>
 
-              <h2 className="text-xl font-bold text-center text-gray-800">
+              <h2 className="text-xl font-bold text-center text-gray-800 dark:text-gray-500">
                 {user?.fullName}
               </h2>
               <p className="text-gray-500 text-center">@{user?.username}</p>

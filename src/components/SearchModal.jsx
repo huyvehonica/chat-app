@@ -92,7 +92,7 @@ const SearchModal = ({ startChat, currentUser }) => {
     <>
       <button
         onClick={openModal}
-        className="bg-[#D9F2ED] w-[35px] h-[35px] p-2 items-center flex justify-center rounded-lg"
+        className="bg-[#D9F2ED] dark:bg-gray-700 w-[35px] h-[35px] p-2 items-center  flex justify-center rounded-lg"
       >
         <RiSearchLine color="#01AA85" className="w-[18px] h-[18px]" />
       </button>
@@ -117,7 +117,7 @@ const SearchModal = ({ startChat, currentUser }) => {
                 exit={{ y: 50, opacity: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <div className="relative bg-[#01AA85] w-[100%] rounded-md shadow-lg">
+                <div className="relative bg-[#01AA85] dark:bg-gray-800  w-[100%] rounded-md shadow-lg">
                   <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-300">
                     <h3 className="text-xl font-semibold text-white">
                       Search Chat
@@ -157,7 +157,7 @@ const SearchModal = ({ startChat, currentUser }) => {
                               startChat(user);
                               closeModal();
                             }}
-                            className="flex items-start gap-3 bg-[#15eabc34] p-2 mb-2 rounded-lg cursor-pointer border-[#ffffff20] shadow-lg "
+                            className="flex items-start gap-3 border border-gray-200 p-2 mb-2 rounded-lg cursor-pointer hover:bg-[#2c947d]  dark:hover:bg-gray-700 shadow-lg "
                           >
                             <img
                               src={user?.image || imageDefault}

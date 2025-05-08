@@ -184,7 +184,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
     <>
       {selectedUser ? (
         <section className="relative flex flex-col items-start justify-start h-screen w-[100%] background-image dark:bg-gray-900 dark:bg-none">
-          <header className="border-b border-gray-200 dark:border-gray-700 w-[100%] h-[81px] m:h-fit p-4 bg-white dark:bg-gray-900 z-50">
+          <header className="border-b border-gray-200 dark:border-gray-700 w-[100%] h-[81px] m:h-fit p-4 bg-white dark:bg-gray-900">
             <main className="flex items-center gap-3 jus">
               <button
                 className="p-2 rounded-full hover:bg-[#D9F2ED] dark:hover:bg-gray-800 block md:hidden"
@@ -224,7 +224,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
                 </span>
               </div>
               <div className="flex items-center gap-3 ml-auto">
-                <button className="p-2 rounded-full hover:bg-[#D9F2ED] dark:hover:bg-gray-800 hidden md:block">
+                <button className="p-2 rounded-full hover:bg-[#D9F2ED] dark:hover:bg-gray-800 ">
                   <CiVideoOn
                     size={22}
                     className="dark:text-white"
@@ -253,10 +253,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
       ) : (
         <section className="h-screen w-full bg-[#e5f6f3] dark:bg-gray-900">
           <div className="flex flex-col justify-center items-center h-full w-full">
-            <img
-              src={logo}
-              className="dark:bg-gray-700 dark:p-2 dark:rounded-lg"
-            />
+            <img src={logo} className=" dark:p-2 dark:rounded-lg" />
             <h1 className="text-[30px] font-bold text-teal-700 dark:text-teal-400 mt-5">
               Welcome to ChatChit
             </h1>

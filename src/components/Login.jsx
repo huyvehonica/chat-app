@@ -31,9 +31,9 @@ const Login = () => {
   };
 
   return (
-    <section className="flex flex-col justify-center items-center h-[100vh] background-image">
-      <div className="bg-white shadow-lg p-5 rounded-xl h-[27rem] w-[20rem] flex flex-col justify-center items-center">
-        <h1 className="text-center text-gray-900 text-[28px] font-bold ">
+    <section className="flex dark:bg-gray-900 flex-col justify-center items-center h-[100vh] background-image">
+      <div className="bg-white dark:bg-gray-700 shadow-lg p-5 rounded-xl h-[27rem] w-[20rem] flex flex-col justify-center items-center">
+        <h1 className="text-center text-gray-900 dark:text-white text-[28px] font-bold ">
           Sign In
         </h1>
         <p className="text-center text-sm text-gray-400 mb-10">
@@ -55,9 +55,9 @@ const Login = () => {
               })}
               className={`border w-full p-2 rounded-md ${
                 errors.email
-                  ? "border-red-500 bg-red-50"
+                  ? "border-red-500 "
                   : "border-green-200 bg-[#01aa851d]"
-              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958]`}
+              } text-[#004939f3] dark:text-white font-medium outline-none placeholder:text-[#00493958] dark:placeholder:text-white`}
               placeholder="Email"
             />
             {errors.email && (
@@ -78,11 +78,11 @@ const Login = () => {
                   message: "Password must be at least 6 characters",
                 },
               })}
-              className={`border w-full p-2 rounded-md ${
+              className={`border dark:text-white w-full p-2 rounded-md ${
                 errors.password
-                  ? "border-red-500 bg-red-50"
+                  ? "border-red-500  "
                   : "border-green-200 bg-[#01aa851d]"
-              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958]`}
+              } text-[#004939f3] font-medium outline-none placeholder:text-[#00493958]  dark:placeholder:text-white`}
               placeholder="Password"
             />
             {errors.password && (

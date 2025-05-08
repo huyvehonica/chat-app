@@ -60,12 +60,12 @@ const NavLinks = () => {
   return (
     <section className="sticky lg:static top-0 flex items-center lg:items-start lg:justify-start h-[7vh] lg:h-[100vh] w-[100%] lg:w-[150px] py-8 lg:py-0 bg-[#01aa85] dark:bg-gray-800 transition-colors duration-300 ease-in-out">
       <main className="flex lg:flex-col item-center lg:gap-10 justify-between lg::px-0 w-[100%]">
-        <div className="lex items-start justify-center h-[81px] lg:border-b border-b-1 border-gray-700 lg:w[100%] p-4">
+        <div className="flex items-start justify-center h-[81px] lg:border-b border-b-1 border-gray-700 lg:w[100%] p-4">
           <span className="flex items-center justify-center">
             <img
               src={logo}
               alt="logo"
-              className="w-[56px] h-[53px] object-contain bg-white dark:bg-gray-700 rounded-lg transition-colors duration-300"
+              className="w-[56px] h-[53px] object-contain md:bg-white dark:bg-gray-700 rounded-lg transition-colors duration-300"
             />
           </span>
         </div>

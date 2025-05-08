@@ -137,10 +137,10 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
             className="bg-white rounded-lg w-full max-w-md p-5"
           >
             <div className="fixed inset-0  bg-opacity-50 z-50 flex items-center justify-center">
-              <div className="bg-white rounded-lg w-full max-w-md p-5">
+              <div className="bg-white dark:bg-gray-800  rounded-lg w-full max-w-md p-5">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800">
-                    Tạo nhóm chat mới
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+                    Create a new chat group
                   </h2>
                   <button
                     onClick={onClose}
@@ -150,29 +150,29 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                   </button>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Tên nhóm
+                <div className="mb-4 ">
+                  <label className="block text-gray-700 dark:text-white text-sm font-medium mb-2">
+                    Group name
                   </label>
                   <input
                     type="text"
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    placeholder="Nhập tên nhóm"
+                    className="w-full px-3 py-2 border dark:text-white border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="Enter a group name"
                   />
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Thêm thành viên
+                  <label className="block text-gray-700 dark:text-white text-sm font-medium mb-2">
+                    Add members
                   </label>
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    placeholder="Tìm bạn bè theo tên hoặc username"
+                    className="w-full px-3 py-2 border dark:text-white border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    placeholder="Find friends by name or username"
                   />
 
                   {/* Hiển thị kết quả tìm kiếm */}
@@ -190,7 +190,7 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                       {searchResults.map((user) => (
                         <div
                           key={user.uid}
-                          className="flex items-center p-2 hover:bg-gray-100 cursor-pointer"
+                          className="flex items-center p-2 hover:bg-gray-700 cursor-pointer"
                           onClick={() => handleSelectUser(user)}
                         >
                           <img
@@ -199,10 +199,10 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                             className="w-8 h-8 rounded-full mr-2 object-cover"
                           />
                           <div>
-                            <p className="font-medium text-gray-800">
+                            <p className="font-medium text-gray-800 dark:text-white">
                               {user.fullName}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-white">
                               @{user.username}
                             </p>
                           </div>
@@ -215,21 +215,23 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                 {/* Hiển thị người dùng đã chọn */}
                 {selectedUsers.length > 0 && (
                   <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-medium mb-2">
-                      Thành viên đã chọn ({selectedUsers.length})
+                    <label className="block text-gray-700 dark:text-white text-sm font-medium mb-2">
+                      Selected member ({selectedUsers.length})
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {selectedUsers.map((user) => (
                         <div
                           key={user.uid}
-                          className="flex items-center bg-gray-100 rounded-full px-3 py-1"
+                          className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1"
                         >
                           <img
                             src={user.image || imageDefault}
                             alt={user.fullName}
-                            className="w-6 h-6 rounded-full mr-1 object-cover"
+                            className="w-6 h-6  rounded-full mr-1 object-cover"
                           />
-                          <span className="text-sm">{user.fullName}</span>
+                          <span className="text-sm dark:text-white">
+                            {user.fullName}
+                          </span>
                           <button
                             onClick={() => handleRemoveUser(user.uid)}
                             className="ml-1 text-gray-500 hover:text-gray-700"
@@ -245,9 +247,9 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                 <div className="flex justify-end gap-2 mt-6">
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 text-gray-700 border border-gray-300 dark:text-white rounded-md dark:hover:bg-gray-700 hover:bg-gray-50"
                   >
-                    Hủy
+                    Cancel
                   </button>
                   <button
                     onClick={handleCreateGroup}
@@ -257,12 +259,12 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                     {loading ? (
                       <>
                         <CgSpinner className="animate-spin mr-2" size={18} />
-                        Đang tạo...
+                        Creating...
                       </>
                     ) : (
                       <>
                         <HiOutlineUserGroup className="mr-2" size={18} />
-                        Tạo nhóm
+                        Create groups
                       </>
                     )}
                   </button>
