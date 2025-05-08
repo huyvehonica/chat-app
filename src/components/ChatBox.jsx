@@ -11,6 +11,8 @@ import {
   listenForGroupMessages,
   listenForMessages,
   listenToUserOnlineStatus,
+  markChatAsRead,
+  markGroupAsRead,
   sendGroupMessage,
   sendMessage,
 } from "../firebase/firebase";
@@ -67,6 +69,30 @@ const ChatBox = ({ selectedUser, onBack }) => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
+  }, [chatId, isGroup]);
+
+  // Đánh dấu tin nhắn là đã đọc khi mở cuộc trò chuyện
+  useEffect(() => {
+    if (!chatId) return;
+
+    // Đánh dấu tin nhắn là đã đọc ngay khi người dùng mở hội thoại
+    const markAsRead = async () => {
+      if (isGroup) {
+        await markGroupAsRead(chatId);
+      } else {
+        await markChatAsRead(chatId);
+      }
+    };
+
+    markAsRead();
+
+    // Thiết lập interval để đánh dấu tin nhắn là đã đọc mỗi 5 giây
+    // khi người dùng đang xem cuộc trò chuyện
+    const interval = setInterval(() => {
+      markAsRead();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [chatId, isGroup]);
 
   // Lắng nghe trạng thái online của người dùng

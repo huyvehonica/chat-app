@@ -9,6 +9,8 @@ import {
   db,
   listenForChats,
   listenForGroups,
+  listenForUnreadCounts,
+  listenForUnreadGroupCounts,
   rtdb,
 } from "../firebase/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -28,6 +30,9 @@ const ChatList = ({ setSelectedUser }) => {
   const [selectedProfile, setSelectedProfile] = useState(null); // State để lưu thông tin người dùng được chọn
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [activeTab, setActiveTab] = useState("chats"); // 'chats' or 'groups'
+  const [unreadCounts, setUnreadCounts] = useState({}); // Lưu số lượng tin nhắn chưa đọc của từng chat
+  const [unreadGroupCounts, setUnreadGroupCounts] = useState({}); // Lưu số lượng tin nhắn chưa đọc của từng nhóm
+  const [groupSenderNames, setGroupSenderNames] = useState({}); // Lưu tên người gửi tin nhắn cuối cùng trong nhóm
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -55,6 +60,26 @@ const ChatList = ({ setSelectedUser }) => {
     return () => {
       unSubscribe();
       unsubscribeGroups(); // Unsubscribe from the listener when the component unmounts
+    };
+  }, []);
+
+  // Lắng nghe số lượng tin nhắn chưa đọc
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    // Lắng nghe số lượng tin nhắn chưa đọc trong chat cá nhân
+    const unreadChatsUnsubscribe = listenForUnreadCounts((counts) => {
+      setUnreadCounts(counts);
+    });
+
+    // Lắng nghe số lượng tin nhắn chưa đọc trong nhóm
+    const unreadGroupsUnsubscribe = listenForUnreadGroupCounts((counts) => {
+      setUnreadGroupCounts(counts);
+    });
+
+    return () => {
+      unreadChatsUnsubscribe();
+      unreadGroupsUnsubscribe();
     };
   }, []);
 
@@ -128,6 +153,33 @@ const ChatList = ({ setSelectedUser }) => {
   const closeCreateGroupModal = () => {
     setShowCreateGroupModal(false);
   };
+
+  // Hàm lấy tên người gửi tin nhắn cuối cùng trong nhóm
+  const fetchLastMessageSender = async (senderId) => {
+    if (!senderId || groupSenderNames[senderId]) return;
+    
+    const userRef = ref(rtdb, `users/${senderId}`);
+    onValue(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        setGroupSenderNames(prev => ({
+          ...prev,
+          [senderId]: userData.fullName || userData.username || "Unknown User"
+        }));
+      }
+    });
+  };
+
+  // Lấy thông tin người gửi tin nhắn cuối cùng trong các nhóm
+  useEffect(() => {
+    groups.forEach(group => {
+      if (group.lastMessageSenderId) {
+        fetchLastMessageSender(group.lastMessageSenderId);
+      }
+    });
+  }, [groups]);
+
+  console.log("groups", groups);
   return (
     <section className="relative lg:flex flex-col items-start justify-start border-r bg-white dark:bg-gray-900 dark:border-gray-700 h-[100vh] w-[100%] lg:w-[600px]">
       <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0  border-r border-[#9090902c] dark:border-gray-700 dark:bg-gray-900">
@@ -242,6 +294,15 @@ const ChatList = ({ setSelectedUser }) => {
                       {formatTimestamp(chat?.lastMessageTimestamp)}
                     </p>
 
+                    {/* Hiển thị số lượng tin nhắn chưa đọc */}
+                    {unreadCounts[chat?.id] > 0 && (
+                      <div className="bg-teal-500 text-white rounded-full h-5 min-w-5 flex items-center justify-center text-xs font-medium px-1 mt-1">
+                        {unreadCounts[chat?.id] > 99
+                          ? "99+"
+                          : unreadCounts[chat?.id]}
+                      </div>
+                    )}
+
                     {/* Hiển thị trạng thái "online" hoặc "last seen" */}
                   </div>
                 </button>
@@ -270,13 +331,24 @@ const ChatList = ({ setSelectedUser }) => {
                     <p className="p-0 font-light text-gray-500 dark:text-gray-400 text-left text-[14px] truncate max-w-[140px]">
                       {group?.lastMessageSenderId === auth?.currentUser?.uid
                         ? `You: ${group?.lastMessage}`
-                        : group?.lastMessage}
+                        : `${groupSenderNames[group?.lastMessageSenderId] || "Unknown User"}: ${group?.lastMessage}`}
                     </p>
                   </span>
                 </div>
-                <p className="p-0 w-fit font-regular text-gray-400 text-[11px] text-right">
-                  {formatTimestamp(group?.lastMessageTimestamp)}
-                </p>
+                <div className="flex flex-col items-end">
+                  <p className="p-0 w-fit font-regular text-gray-400 text-[11px] text-right">
+                    {formatTimestamp(group?.lastMessageTimestamp)}
+                  </p>
+
+                  {/* Hiển thị số lượng tin nhắn chưa đọc trong nhóm */}
+                  {unreadGroupCounts[group?.id] > 0 && (
+                    <div className="bg-teal-500 text-white rounded-full h-5 min-w-5 flex items-center justify-center text-xs font-medium px-1 mt-1">
+                      {unreadGroupCounts[group?.id] > 99
+                        ? "99+"
+                        : unreadGroupCounts[group?.id]}
+                    </div>
+                  )}
+                </div>
               </button>
             ))}
 

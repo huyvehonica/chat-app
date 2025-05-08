@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import logo from "../assets/logo.png";
 import { signOut } from "firebase/auth";
-import { auth } from "../firebase/firebase";
+import {
+  auth,
+  getTotalUnreadCountAll,
+  listenForUnreadCounts,
+  listenForUnreadGroupCounts,
+} from "../firebase/firebase";
 import {
   RiArrowDownSFill,
   RiBardLine,
@@ -18,11 +23,42 @@ import toast from "react-hot-toast";
 const NavLinks = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0); // State để lưu tổng số tin nhắn chưa đọc
 
   useEffect(() => {
     // Check for dark mode preference in localStorage
     const darkModePreference = localStorage.getItem("darkMode") === "true";
     setIsDarkMode(darkModePreference);
+  }, []);
+
+  // Lắng nghe tổng số tin nhắn chưa đọc
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    // Lắng nghe số lượng tin nhắn chưa đọc trong chat cá nhân
+    const unreadChatsUnsubscribe = listenForUnreadCounts((chatCounts) => {
+      // Tính tổng số tin nhắn chưa đọc trong chat cá nhân
+      const chatTotal = Object.values(chatCounts).reduce(
+        (sum, count) => sum + count,
+        0
+      );
+
+      // Lắng nghe số lượng tin nhắn chưa đọc trong nhóm
+      listenForUnreadGroupCounts((groupCounts) => {
+        // Tính tổng số tin nhắn chưa đọc trong các nhóm
+        const groupTotal = Object.values(groupCounts).reduce(
+          (sum, count) => sum + count,
+          0
+        );
+
+        // Cập nhật tổng số tin nhắn chưa đọc
+        setTotalUnreadCount(chatTotal + groupTotal);
+      });
+    });
+
+    return () => {
+      unreadChatsUnsubscribe();
+    };
   }, []);
 
   const toggleDarkMode = () => {
@@ -70,9 +106,16 @@ const NavLinks = () => {
           </span>
         </div>
         <ul className="flex lg:flex-col flex-row items-center gap-7 md:gap-10 px-2 md:px-0">
-          <li className="">
+          <li className="relative">
             <button className="lg:text-[28px] text-[22px] cursor-pointer">
               <RiChatAiLine className="text-white transition-transform duration-300 hover:scale-110" />
+
+              {/* Badge hiển thị số lượng tin nhắn chưa đọc */}
+              {totalUnreadCount > 0 && (
+                <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1 font-medium">
+                  {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
+                </div>
+              )}
             </button>
           </li>
           <li className="">

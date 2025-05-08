@@ -145,6 +145,12 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
   }
 
   await set(newMessageRef, messageData);
+
+  // Đánh dấu tin nhắn là chưa đọc cho người nhận
+  const receiverId = user2; // Người nhận là người còn lại trong cuộc trò chuyện
+  if (receiverId !== currentUserId) {
+    await markMessageAsUnread(chatId, newMessageRef.key, receiverId);
+  }
 };
 
 // Initialize Firebase
@@ -416,6 +422,47 @@ export const sendGroupMessage = async (messageText, groupId) => {
   const messagesRef = ref(rtdb, `groups/${groupId}/messages`);
   const newMessageRef = push(messagesRef);
   await set(newMessageRef, messageData);
+
+  // Đánh dấu tin nhắn là chưa đọc cho tất cả thành viên khác trong nhóm
+  try {
+    // Lấy danh sách thành viên nhóm
+    const groupSnapshot = await get(groupRef);
+    if (groupSnapshot.exists()) {
+      const groupData = groupSnapshot.val();
+      const members = groupData.members || {};
+
+      // Đánh dấu tin nhắn chưa đọc cho mỗi thành viên (trừ người gửi)
+      for (const memberId of Object.keys(members)) {
+        if (memberId !== currentUserId) {
+          // Cập nhật trạng thái chưa đọc trong nhóm
+          const unreadRef = ref(
+            rtdb,
+            `groups/${groupId}/unreadMessages/${memberId}/${newMessageRef.key}`
+          );
+          await set(unreadRef, true);
+
+          // Cập nhật tổng số tin nhắn chưa đọc cho thành viên
+          const unreadCountRef = ref(
+            rtdb,
+            `users/${memberId}/unreadGroups/${groupId}`
+          );
+          const unreadCountSnapshot = await get(unreadCountRef);
+
+          if (unreadCountSnapshot.exists()) {
+            // Tăng số lượng tin nhắn chưa đọc
+            await update(unreadCountRef, {
+              count: unreadCountSnapshot.val().count + 1,
+            });
+          } else {
+            // Tạo mới nếu chưa có
+            await set(unreadCountRef, { count: 1 });
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error marking group message as unread:", error);
+  }
 };
 
 // Hàm thêm thành viên vào nhóm
@@ -616,4 +663,173 @@ export const listenToUserOnlineStatus = (userId, callback) => {
   });
 
   return unsubscribe;
+};
+
+// Thêm các hàm quản lý tin nhắn chưa đọc
+
+// Hàm đánh dấu tin nhắn là chưa đọc cho người nhận
+export const markMessageAsUnread = async (chatId, messageId, receiverId) => {
+  // Không đánh dấu tin nhắn chưa đọc nếu người gửi và người nhận là cùng một người
+  if (auth.currentUser?.uid === receiverId) return;
+
+  // Cập nhật trạng thái chưa đọc trong chat
+  const unreadRef = ref(
+    rtdb,
+    `chats/${chatId}/unreadMessages/${receiverId}/${messageId}`
+  );
+  await set(unreadRef, true);
+
+  // Cập nhật tổng số tin nhắn chưa đọc
+  const unreadCountRef = ref(rtdb, `users/${receiverId}/unreadChats/${chatId}`);
+  const unreadCountSnapshot = await get(unreadCountRef);
+
+  if (unreadCountSnapshot.exists()) {
+    // Tăng số lượng tin nhắn chưa đọc
+    await update(unreadCountRef, {
+      count: unreadCountSnapshot.val().count + 1,
+    });
+  } else {
+    // Tạo mới nếu chưa có
+    await set(unreadCountRef, { count: 1 });
+  }
+};
+
+// Hàm đánh dấu tất cả tin nhắn trong chat là đã đọc
+export const markChatAsRead = async (chatId) => {
+  const currentUserId = auth.currentUser?.uid;
+  if (!currentUserId || !chatId) return;
+
+  // Xóa thông tin tin nhắn chưa đọc trong chat
+  const unreadMessagesRef = ref(
+    rtdb,
+    `chats/${chatId}/unreadMessages/${currentUserId}`
+  );
+  await set(unreadMessagesRef, null);
+
+  // Xóa thông tin số lượng tin nhắn chưa đọc cho người dùng hiện tại
+  const unreadCountRef = ref(
+    rtdb,
+    `users/${currentUserId}/unreadChats/${chatId}`
+  );
+  await set(unreadCountRef, null);
+};
+
+// Hàm lắng nghe số lượng tin nhắn chưa đọc cho mỗi cuộc trò chuyện
+export const listenForUnreadCounts = (callback) => {
+  const currentUserId = auth.currentUser?.uid;
+  if (!currentUserId) return () => {};
+
+  const unreadChatsRef = ref(rtdb, `users/${currentUserId}/unreadChats`);
+
+  const unsubscribe = onValue(unreadChatsRef, (snapshot) => {
+    const unreadCounts = {};
+
+    if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        const chatId = childSnapshot.key;
+        const data = childSnapshot.val();
+        unreadCounts[chatId] = data.count || 0;
+      });
+    }
+
+    callback(unreadCounts);
+  });
+
+  return unsubscribe;
+};
+
+// Hàm lấy tổng số tin nhắn chưa đọc
+export const getTotalUnreadCount = async () => {
+  const currentUserId = auth.currentUser?.uid;
+  if (!currentUserId) return 0;
+
+  const unreadChatsRef = ref(rtdb, `users/${currentUserId}/unreadChats`);
+  const snapshot = await get(unreadChatsRef);
+
+  let totalCount = 0;
+
+  if (snapshot.exists()) {
+    snapshot.forEach((childSnapshot) => {
+      const data = childSnapshot.val();
+      totalCount += data.count || 0;
+    });
+  }
+
+  return totalCount;
+};
+
+// Hàm đánh dấu tất cả tin nhắn trong nhóm là đã đọc
+export const markGroupAsRead = async (groupId) => {
+  const currentUserId = auth.currentUser?.uid;
+  if (!currentUserId || !groupId) return;
+
+  // Xóa thông tin tin nhắn chưa đọc trong nhóm
+  const unreadMessagesRef = ref(
+    rtdb,
+    `groups/${groupId}/unreadMessages/${currentUserId}`
+  );
+  await set(unreadMessagesRef, null);
+
+  // Xóa thông tin số lượng tin nhắn chưa đọc cho người dùng hiện tại
+  const unreadCountRef = ref(
+    rtdb,
+    `users/${currentUserId}/unreadGroups/${groupId}`
+  );
+  await set(unreadCountRef, null);
+};
+
+// Hàm lắng nghe số lượng tin nhắn chưa đọc trong nhóm
+export const listenForUnreadGroupCounts = (callback) => {
+  const currentUserId = auth.currentUser?.uid;
+  if (!currentUserId) return () => {};
+
+  const unreadGroupsRef = ref(rtdb, `users/${currentUserId}/unreadGroups`);
+
+  const unsubscribe = onValue(unreadGroupsRef, (snapshot) => {
+    const unreadCounts = {};
+
+    if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        const groupId = childSnapshot.key;
+        const data = childSnapshot.val();
+        unreadCounts[groupId] = data.count || 0;
+      });
+    }
+
+    callback(unreadCounts);
+  });
+
+  return unsubscribe;
+};
+
+// Hàm lấy tổng số tin nhắn chưa đọc cả chat cá nhân và nhóm
+export const getTotalUnreadCountAll = async () => {
+  const currentUserId = auth.currentUser?.uid;
+  if (!currentUserId) return 0;
+
+  let totalCount = 0;
+
+  // Đếm số tin nhắn chưa đọc trong chat cá nhân
+  const unreadChatsRef = ref(rtdb, `users/${currentUserId}/unreadChats`);
+  const chatsSnapshot = await get(unreadChatsRef);
+
+  if (chatsSnapshot.exists()) {
+    chatsSnapshot.forEach((childSnapshot) => {
+      const data = childSnapshot.val();
+      totalCount += data.count || 0;
+    });
+  }
+
+  // Đếm số tin nhắn chưa đọc trong nhóm
+  const unreadGroupsRef = ref(rtdb, `users/${currentUserId}/unreadGroups`);
+  const groupsSnapshot = await get(unreadGroupsRef);
+
+  if (groupsSnapshot.exists()) {
+    groupsSnapshot.forEach((childSnapshot) => {
+      const data = childSnapshot.val();
+      totalCount += data.count || 0;
+    });
+  }
+
+  return totalCount;
 };
