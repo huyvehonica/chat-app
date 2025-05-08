@@ -138,7 +138,7 @@ const MessageReactions = ({ message, chatId, showCount = true }) => {
   return (
     <>
       {reactionsExist && (
-        <div className="absolute left-0 top-0 translate-y-6 -translate-x-1/2 bg-white rounded-full shadow text-sm flex gap-1 border border-gray-200">
+        <div className="absolute left-0 top-0 translate-y-4 -translate-x-6 bg-white rounded-full shadow text-sm flex gap-1 border border-gray-200">
           {Object.entries(groupedReactions).map(([emoji, reactions]) => (
             <div key={emoji} className="relative">
               <button

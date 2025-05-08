@@ -684,6 +684,12 @@ const MessageList = ({
                                       )}
                                     </>
                                   )}
+                                  {!msg.isDeleted && (
+                                    <MessageReactions
+                                      message={msg}
+                                      chatId={chatId}
+                                    />
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -789,9 +795,6 @@ const MessageList = ({
                                 )}
                               </div>
                             </>
-                          )}
-                          {!msg.isDeleted && (
-                            <MessageReactions message={msg} chatId={chatId} />
                           )}
                         </div>
                       )}
