@@ -15,6 +15,10 @@ import ChatList from "./components/ChatList";
 import ChatBox from "./components/ChatBox";
 import VideoCall from "./components/VideoCallPage";
 import IncomingCallNotification from "./components/IncomingCallNotification";
+import {
+  setupPresenceSystem,
+  updateUserOnlineStatus,
+} from "./firebase/firebase";
 
 import { Toaster } from "react-hot-toast";
 import { CircleLoader } from "react-spinners";
@@ -40,6 +44,24 @@ const App = () => {
 
     return () => unsubscribe(); // Cleanup
   }, []);
+
+  // Thiết lập hệ thống theo dõi trạng thái online khi người dùng đăng nhập
+  useEffect(() => {
+    let presenceUnsubscribe = () => {};
+
+    if (isLoggedIn) {
+      // Cập nhật trạng thái thành online khi đăng nhập
+      updateUserOnlineStatus("online");
+
+      // Thiết lập hệ thống theo dõi trạng thái online
+      presenceUnsubscribe = setupPresenceSystem();
+    }
+
+    return () => {
+      // Dọn dẹp listener khi component unmount
+      presenceUnsubscribe();
+    };
+  }, [isLoggedIn]);
 
   if (loading) {
     return (

@@ -64,9 +64,15 @@ const ChatList = ({ setSelectedUser }) => {
     const userRef = ref(rtdb, `users/${uid}`);
     onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
+        const userData = snapshot.val();
+        // Lắng nghe thay đổi trạng thái online
         setUserDetails((prev) => ({
           ...prev,
-          [uid]: snapshot.val(),
+          [uid]: {
+            ...userData,
+            status: userData.status || "offline",
+            lastSeen: userData.lastSeen || null,
+          },
         }));
       }
     });
@@ -207,12 +213,17 @@ const ChatList = ({ setSelectedUser }) => {
                   onClick={() => startChat(userDetails[otherUsers[0]])}
                 >
                   <div className="grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3">
-                    <div className="w-11 h-11 rounded-full overflow-hidden">
+                    <div className="relative w-11 h-11">
                       <img
                         src={userDetails[otherUsers[0]]?.image || imageDefault}
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full rounded-full"
                         alt="imageDefaultUser"
                       />
+
+                      {/* Chỉ báo trạng thái online */}
+                      {userDetails[otherUsers[0]]?.status === "online" && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+                      )}
                     </div>
 
                     <span>
@@ -226,9 +237,13 @@ const ChatList = ({ setSelectedUser }) => {
                       </p>
                     </span>
                   </div>
-                  <p className="p-0 font-regular text-gray-400 text-[11px] w-fit text-right">
-                    {formatTimestamp(chat?.lastMessageTimestamp)}
-                  </p>
+                  <div className="flex flex-col items-end">
+                    <p className="p-0 font-regular text-gray-400 text-[11px] w-fit text-right">
+                      {formatTimestamp(chat?.lastMessageTimestamp)}
+                    </p>
+
+                    {/* Hiển thị trạng thái "online" hoặc "last seen" */}
+                  </div>
                 </button>
               );
             })

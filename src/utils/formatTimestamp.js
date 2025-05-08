@@ -1,4 +1,4 @@
-const formatTimestamp = (timestamp) => {
+const formatTimestamp = (timestamp, isLastSeen = false) => {
   if (!timestamp) return "";
 
   let timeValue;
@@ -17,6 +17,27 @@ const formatTimestamp = (timestamp) => {
   }
 
   const now = new Date();
+  const diffMs = now - timeValue;
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  // Nếu là last seen, hiển thị dạng "Last seen X time ago"
+  if (isLastSeen) {
+    if (diffMinutes < 1) {
+      return "Vừa mới truy cập";
+    } else if (diffMinutes < 60) {
+      return `Truy cập ${diffMinutes} phút trước`;
+    } else if (diffHours < 24) {
+      return `Truy cập ${diffHours} giờ trước`;
+    } else if (diffDays < 7) {
+      return `Truy cập ${diffDays} ngày trước`;
+    } else {
+      return `Truy cập ngày ${timeValue.toLocaleDateString()}`;
+    }
+  }
+
+  // Định dạng thời gian bình thường cho tin nhắn
   const isSameDay =
     timeValue.getFullYear() === now.getFullYear() &&
     timeValue.getMonth() === now.getMonth() &&

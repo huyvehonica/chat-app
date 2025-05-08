@@ -95,7 +95,7 @@ const IncomingCallNotification = () => {
 
         try {
           // Preload the audio file before playing
-          await audio.load();
+          audio.load();
           await audio.play();
           console.log("Ringtone playing successfully");
         } catch (e) {
@@ -134,7 +134,7 @@ const IncomingCallNotification = () => {
 
   const handleAcceptCall = async () => {
     if (!incomingCall) return;
-    
+
     // Stop ringtone first
     stopRingtone();
 
@@ -156,7 +156,7 @@ const IncomingCallNotification = () => {
 
   const handleRejectCall = async () => {
     if (!incomingCall) return;
-    
+
     // Stop ringtone first
     stopRingtone();
 

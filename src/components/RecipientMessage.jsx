@@ -25,6 +25,7 @@ const RecipientMessage = ({
   chatId,
   setReplyingTo,
   messages,
+  onlineStatus,
 }) => {
   const [senderInfo, setSenderInfo] = useState(null);
   const [messageMenuOpen, setMessageMenuOpen] = useState(false);
@@ -88,11 +89,18 @@ const RecipientMessage = ({
   return (
     <div className="flex flex-col items-start w-full mb-4">
       <span className="flex gap-1 max-w-[70%] h-auto text-sx text-right">
-        <img
-          src={senderInfo?.image || imageDefault}
-          alt="defaultImage"
-          className="h-10 w-10 object-cover rounded-full"
-        />
+        <div>
+          <div className="relative">
+            <img
+              src={senderInfo?.image || imageDefault}
+              alt="defaultImage"
+              className="h-10 w-10 object-cover rounded-full"
+            />
+            {onlineStatus.status === "online" && (
+              <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+            )}
+          </div>
+        </div>
         <div>
           {/* Display reply preview if this is a reply to another message */}
           {msg.replyTo && (

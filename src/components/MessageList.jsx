@@ -37,6 +37,7 @@ const MessageList = ({
   onScroll,
   setReplyingTo,
   replyingTo,
+  onlineStatus,
 }) => {
   const [activeMenu, setActiveMenu] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -819,6 +820,7 @@ const MessageList = ({
                   chatId={chatId}
                   setReplyingTo={setReplyingTo}
                   messages={messages}
+                  onlineStatus={onlineStatus}
                 />
               )}
             </div>

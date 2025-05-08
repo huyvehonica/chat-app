@@ -10,6 +10,7 @@ import {
   initiateGroupCall,
   listenForGroupMessages,
   listenForMessages,
+  listenToUserOnlineStatus,
   sendGroupMessage,
   sendMessage,
 } from "../firebase/firebase";
@@ -26,6 +27,10 @@ const ChatBox = ({ selectedUser, onBack }) => {
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [userScrolling, setUserScrolling] = useState(false); // Thêm trạng thái để theo dõi khi người dùng đang cuộn
   const [scrollTimeout, setScrollTimeout] = useState(null); // Theo dõi timeout để tránh trigger cuộn liên tục
+  const [onlineStatus, setOnlineStatus] = useState({
+    status: "offline",
+    lastSeen: null,
+  });
   const isGroup = selectedUser?.type === "group";
   const groupData = isGroup ? selectedUser.data : null;
   const userData = isGroup ? null : selectedUser;
@@ -63,6 +68,24 @@ const ChatBox = ({ selectedUser, onBack }) => {
       if (unsubscribe) unsubscribe();
     };
   }, [chatId, isGroup]);
+
+  // Lắng nghe trạng thái online của người dùng
+  useEffect(() => {
+    let onlineStatusUnsubscribe = () => {};
+
+    if (!isGroup && userData?.uid) {
+      onlineStatusUnsubscribe = listenToUserOnlineStatus(
+        userData.uid,
+        (status) => {
+          setOnlineStatus(status);
+        }
+      );
+    }
+
+    return () => {
+      onlineStatusUnsubscribe();
+    };
+  }, [isGroup, userData]);
 
   // Hàm bắt sự kiện cuộn thủ công của người dùng - sửa lại logic
   const handleUserScroll = () => {
@@ -202,11 +225,16 @@ const ChatBox = ({ selectedUser, onBack }) => {
                     <HiOutlineUserGroup className="text-teal-600 dark:text-teal-400 text-2xl" />
                   </div>
                 ) : (
-                  <img
-                    src={userData?.image || imageDefault}
-                    className="w-11 h-11 object-cover rounded-full"
-                    alt="User avatar"
-                  />
+                  <div className="relative">
+                    <img
+                      src={userData?.image || imageDefault}
+                      className="w-11 h-11 object-cover rounded-full"
+                      alt="User avatar"
+                    />
+                    {onlineStatus.status === "online" && (
+                      <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+                    )}
+                  </div>
                 )}
                 <span>
                   <h3 className="font-semibold text-[#2A3D39] dark:text-white text-lg">
@@ -219,6 +247,10 @@ const ChatBox = ({ selectedUser, onBack }) => {
                       ? `${
                           Object.keys(groupData?.members || {}).length
                         } members`
+                      : onlineStatus.status === "online"
+                      ? "Đang hoạt động"
+                      : onlineStatus.lastSeen
+                      ? formatTimestamp(onlineStatus.lastSeen, true)
                       : userData?.username || "Chatfrik User"}
                   </p>
                 </span>
@@ -248,6 +280,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
             onScroll={handleUserScroll}
             setReplyingTo={setReplyingTo}
             replyingTo={replyingTo}
+            onlineStatus={onlineStatus}
           />
         </section>
       ) : (

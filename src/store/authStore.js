@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { auth } from "../firebase/firebase";
+import { auth, updateUserOnlineStatus } from "../firebase/firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -39,6 +39,10 @@ const useAuthStore = create((set) => ({
 
       set({ user: userData, isLoggedIn: true, loading: false });
       localStorage.setItem("user", JSON.stringify(userData));
+
+      // Cập nhật trạng thái online khi đăng ký
+      await updateUserOnlineStatus("online");
+
       return userData;
     } catch (error) {
       set({ error: error.message, loading: false });
@@ -66,6 +70,10 @@ const useAuthStore = create((set) => ({
 
       set({ user: userData, isLoggedIn: true, loading: false });
       localStorage.setItem("user", JSON.stringify(userData));
+
+      // Cập nhật trạng thái online khi đăng nhập
+      await updateUserOnlineStatus("online");
+
       return userData;
     } catch (error) {
       set({ error: error.message, loading: false });
@@ -76,6 +84,9 @@ const useAuthStore = create((set) => ({
   // Đăng xuất
   logout: async () => {
     try {
+      // Cập nhật trạng thái offline trước khi đăng xuất
+      await updateUserOnlineStatus("offline");
+
       await signOut(auth);
       set({ user: null, isLoggedIn: false, loading: false });
       localStorage.removeItem("user");

@@ -7,7 +7,7 @@ import {
   browserLocalPersistence,
 } from "firebase/auth";
 
-import { serverTimestamp, update } from "firebase/database";
+import { serverTimestamp, update, onDisconnect } from "firebase/database";
 import { getDatabase, ref, set, onValue, get, push } from "firebase/database";
 import { getStorage } from "firebase/storage";
 import { LuMessageSquareText } from "react-icons/lu";
@@ -519,4 +519,101 @@ export const updateUserProfile = async (profileData) => {
   }
 
   return await getCurrentUserProfile();
+};
+
+// Hàm cập nhật trạng thái online/offline của người dùng
+export const updateUserOnlineStatus = async (status) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return;
+
+  const userRef = ref(rtdb, `users/${currentUser.uid}`);
+
+  if (status === "offline") {
+    // Khi offline, cập nhật lastSeen là thời điểm hiện tại
+    await update(userRef, {
+      status: "offline",
+      lastSeen: serverTimestamp(),
+    });
+  } else {
+    // Khi online, cập nhật trạng thái và xóa lastSeen (vì đang online)
+    await update(userRef, {
+      status: "online",
+    });
+  }
+};
+
+// Theo dõi kết nối internet để cập nhật trạng thái online/offline
+export const setupPresenceSystem = () => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return () => {};
+
+  // Tham chiếu đến đường dẫn .info/connected đặc biệt của Firebase
+  const connectedRef = ref(rtdb, ".info/connected");
+
+  // Tham chiếu đến trạng thái online của người dùng
+  const userStatusRef = ref(rtdb, `users/${currentUser.uid}/status`);
+  const userLastSeenRef = ref(rtdb, `users/${currentUser.uid}/lastSeen`);
+
+  const unsubscribe = onValue(connectedRef, (snapshot) => {
+    // Nếu đã kết nối
+    if (snapshot.val() === true) {
+      // Khi ngắt kết nối, trạng thái sẽ được cập nhật thành offline
+      // Sử dụng onDisconnect để đảm bảo trạng thái được cập nhật ngay cả khi mất kết nối đột ngột
+      set(userStatusRef, "online");
+
+      // Khi ngắt kết nối, cập nhật lastSeen
+      onDisconnect(userStatusRef).set("offline");
+      onDisconnect(userLastSeenRef).set(serverTimestamp());
+    } else {
+      // Không kết nối được với Firebase
+      set(userStatusRef, "offline");
+      set(userLastSeenRef, serverTimestamp());
+    }
+  });
+
+  // Đảm bảo cập nhật trạng thái khi người dùng rời khỏi trang
+  window.addEventListener("beforeunload", () => {
+    updateUserOnlineStatus("offline");
+  });
+
+  return unsubscribe;
+};
+
+// Hàm lấy trạng thái online của một người dùng
+export const getUserOnlineStatus = async (userId) => {
+  if (!userId) return { status: "offline" };
+
+  const userRef = ref(rtdb, `users/${userId}`);
+  const snapshot = await get(userRef);
+
+  if (snapshot.exists()) {
+    const userData = snapshot.val();
+    return {
+      status: userData.status || "offline",
+      lastSeen: userData.lastSeen || null,
+    };
+  }
+
+  return { status: "offline" };
+};
+
+// Hàm lắng nghe sự thay đổi trạng thái online của một người dùng
+export const listenToUserOnlineStatus = (userId, callback) => {
+  if (!userId) return () => {};
+
+  const userStatusRef = ref(rtdb, `users/${userId}`);
+
+  const unsubscribe = onValue(userStatusRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const userData = snapshot.val();
+      callback({
+        status: userData.status || "offline",
+        lastSeen: userData.lastSeen || null,
+      });
+    } else {
+      callback({ status: "offline" });
+    }
+  });
+
+  return unsubscribe;
 };
