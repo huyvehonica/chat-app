@@ -157,14 +157,14 @@ const ChatList = ({ setSelectedUser }) => {
   // Hàm lấy tên người gửi tin nhắn cuối cùng trong nhóm
   const fetchLastMessageSender = async (senderId) => {
     if (!senderId || groupSenderNames[senderId]) return;
-    
+
     const userRef = ref(rtdb, `users/${senderId}`);
     onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
         const userData = snapshot.val();
-        setGroupSenderNames(prev => ({
+        setGroupSenderNames((prev) => ({
           ...prev,
-          [senderId]: userData.fullName || userData.username || "Unknown User"
+          [senderId]: userData.fullName || userData.username || "Unknown User",
         }));
       }
     });
@@ -172,7 +172,7 @@ const ChatList = ({ setSelectedUser }) => {
 
   // Lấy thông tin người gửi tin nhắn cuối cùng trong các nhóm
   useEffect(() => {
-    groups.forEach(group => {
+    groups.forEach((group) => {
       if (group.lastMessageSenderId) {
         fetchLastMessageSender(group.lastMessageSenderId);
       }
@@ -182,7 +182,7 @@ const ChatList = ({ setSelectedUser }) => {
   console.log("groups", groups);
   return (
     <section className="relative lg:flex flex-col items-start justify-start border-r bg-white dark:bg-gray-900 dark:border-gray-700 h-[100vh] w-[100%] lg:w-[600px]">
-      <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0  border-r border-[#9090902c] dark:border-gray-700 dark:bg-gray-900">
+      <header className="flex items-center justify-between w-[100%] lg:border-b border-b-1 p-4 sticky md:static top-0  border-[#9090902c] dark:border-gray-700 dark:bg-gray-900">
         <main
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => openProfileModal(user)}
@@ -331,7 +331,10 @@ const ChatList = ({ setSelectedUser }) => {
                     <p className="p-0 font-light text-gray-500 dark:text-gray-400 text-left text-[14px] truncate max-w-[140px]">
                       {group?.lastMessageSenderId === auth?.currentUser?.uid
                         ? `You: ${group?.lastMessage}`
-                        : `${groupSenderNames[group?.lastMessageSenderId] || "Unknown User"}: ${group?.lastMessage}`}
+                        : `${
+                            groupSenderNames[group?.lastMessageSenderId] ||
+                            "Unknown User"
+                          }: ${group?.lastMessage}`}
                     </p>
                   </span>
                 </div>

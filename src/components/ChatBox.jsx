@@ -15,7 +15,9 @@ import {
   markGroupAsRead,
   sendGroupMessage,
   sendMessage,
+  rtdb,
 } from "../firebase/firebase";
+import { ref, onValue } from "firebase/database";
 import logo from "../assets/logo.png"; // Assuming you have a logo image
 import CallVideoIcon from "./icons/CallVideoIcon";
 import MessageList from "./MessageList";
@@ -33,6 +35,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
     status: "offline",
     lastSeen: null,
   });
+  const [userDetails, setUserDetails] = useState({});
   const isGroup = selectedUser?.type === "group";
   const groupData = isGroup ? selectedUser.data : null;
   const userData = isGroup ? null : selectedUser;
@@ -47,6 +50,24 @@ const ChatBox = ({ selectedUser, onBack }) => {
   const user1 = auth?.currentUser?.uid;
   const user2 = selectedUser?.uid;
   const senderEmail = auth?.currentUser?.uid;
+
+  // Lắng nghe thay đổi thông tin người dùng từ Firebase Realtime Database
+  useEffect(() => {
+    if (!isGroup && userData?.uid) {
+      const userRef = ref(rtdb, `users/${userData.uid}`);
+      const unsubscribe = onValue(userRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const updatedUserData = snapshot.val();
+          setUserDetails((prev) => ({
+            ...prev,
+            [userData.uid]: updatedUserData,
+          }));
+        }
+      });
+
+      return () => unsubscribe();
+    }
+  }, [isGroup, userData]);
 
   useEffect(() => {
     if (!chatId) return;
@@ -253,7 +274,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
                 ) : (
                   <div className="relative">
                     <img
-                      src={userData?.image || imageDefault}
+                      src={(userDetails[userData?.uid]?.image || userData?.image || imageDefault)}
                       className="w-11 h-11 object-cover rounded-full"
                       alt="User avatar"
                     />

@@ -89,7 +89,7 @@ const App = () => {
               path="/chat"
               element={
                 isLoggedIn ? (
-                  <div className="flex lg:flex-row flex-col items-start w-[100%]">
+                  <div className="flex  lg:flex-row flex-col items-start w-[100%]">
                     <NavLinks />
                     {isMobileView ? (
                       showChatBox ? (

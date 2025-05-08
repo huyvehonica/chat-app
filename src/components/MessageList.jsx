@@ -664,7 +664,7 @@ const MessageList = ({
                                 }
                                 setEditingMessageId(null);
                               }}
-                              className="border border-gray-300 rounded px-2 py-1 w-full focus:outline-none"
+                              className="border text-gray-700 border-gray-300 rounded px-2 py-1 w-full focus:outline-none"
                             />
                           ) : (
                             <div className="relative w-fit">

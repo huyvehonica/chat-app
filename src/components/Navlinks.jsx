@@ -101,7 +101,7 @@ const NavLinks = () => {
             <img
               src={logo}
               alt="logo"
-              className="w-[56px] h-[53px] object-contain md:bg-white dark:bg-gray-700 rounded-lg transition-colors duration-300"
+              className="w-[56px] h-[53px] object-contain  rounded-lg transition-colors duration-300"
             />
           </span>
         </div>
