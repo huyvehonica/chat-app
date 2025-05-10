@@ -33,9 +33,7 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 const rtdb = getDatabase(app);
 export const listenForChats = (setChats) => {
-  console.log("Listening for chats...");
   const chatRef = ref(rtdb, "chats");
-
   const unSubscribe = onValue(chatRef, (snapshot) => {
     const chatList = [];
     snapshot.forEach((childSnapshot) => {
@@ -44,18 +42,10 @@ export const listenForChats = (setChats) => {
         ...childSnapshot.val(),
       });
     });
-
-    console.log("Chat list:", chatList);
-
-    // Lấy UID người dùng hiện tại
     const currentUid = auth?.currentUser?.uid;
-
-    // Lọc những chat mà id chứa uid hiện tại
     const filterChats = chatList.filter((chat) =>
       chat?.id.includes(currentUid)
     );
-
-    console.log("Filtered chats:", filterChats);
     setChats(filterChats);
   });
 
@@ -67,17 +57,16 @@ export const listenForMessages = (chatId, setMessages) => {
     const messages = [];
     snapshot.forEach((childSnapshot) => {
       messages.push({
-        messageId: childSnapshot.key, // Lấy messageId
+        messageId: childSnapshot.key,
         ...childSnapshot.val(),
       });
     });
-    setMessages(messages); // Cập nhật state với các tin nhắn mới
+    setMessages(messages);
   });
 };
 
 export const sendMessage = async (messagesText, chatId, user1, user2) => {
   const currentUserId = auth.currentUser.uid;
-  console.log("Current user ID:", currentUserId);
   if (!messagesText || !chatId || !user1 || !user2) {
     console.error("sendMessage error: Missing parameters", {
       messagesText,
@@ -85,8 +74,9 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
       user1,
       user2,
     });
+    return;
   }
-  const chatRef = ref(rtdb, `chats/${chatId}`); // Use Realtime Database reference
+  const chatRef = ref(rtdb, `chats/${chatId}`);
   const chatData = {
     users: [user1, user2],
     lastMessage: messagesText,
