@@ -16,9 +16,9 @@ import {
 } from "../firebase/firebase";
 import { getDatabase, ref, get } from "firebase/database";
 
-const SDKAppID = 20022674; // Replace with your actual AppID
-const SDKSecretKey =
-  "4330ba37d08137345e2cad1cb1a588a4c59c040206ef90bcd508deeeaeb92918"; // Don't use this key in production
+// Sử dụng biến môi trường để lấy các key bảo mật
+const SDKAppID = import.meta.env.VITE_TENCENTRTC_APPID ? parseInt(import.meta.env.VITE_TENCENTRTC_APPID) : 0;
+const SDKSecretKey = import.meta.env.VITE_TENCENTRTC_SDKSECRETKEY || ""; // Lấy từ biến môi trường
 
 const VideoCallPage = () => {
   const [searchParams] = useSearchParams();
@@ -30,7 +30,9 @@ const VideoCallPage = () => {
   const isGroup = searchParams.get("isGroup") === "true";
   const groupId = searchParams.get("groupId");
   // Create a ref to store the autoAccept state
-  const shouldAutoAccept = useRef(callId && calleeUserID === auth.currentUser?.uid);
+  const shouldAutoAccept = useRef(
+    callId && calleeUserID === auth.currentUser?.uid
+  );
 
   const [initSuccess, setInitSuccess] = useState(false);
   const [currentUserID, setCurrentUserID] = useState("");
@@ -78,18 +80,20 @@ const VideoCallPage = () => {
         }
 
         setInitSuccess(true);
-        
+
         // If this is a received call that was already accepted via IncomingCallNotification
         // We'll attempt to auto-accept after a short delay to ensure TUICallKit is ready
         if (shouldAutoAccept.current) {
-          console.log("Call was pre-accepted, will try to auto-accept in TUICallKit");
+          console.log(
+            "Call was pre-accepted, will try to auto-accept in TUICallKit"
+          );
           setTimeout(() => {
             try {
               // Direct call to accept the incoming call
               console.log("Attempting to auto-accept call in TUICallKit");
               TUICallKitServer.accept()
                 .then(() => console.log("Call auto-accepted successfully"))
-                .catch(err => console.error("Auto-accept failed:", err));
+                .catch((err) => console.error("Auto-accept failed:", err));
             } catch (error) {
               console.error("Error during auto-accept:", error);
             }

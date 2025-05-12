@@ -7,19 +7,19 @@ import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ref, set } from "firebase/database";
-import { TUICallKitServer } from "@tencentcloud/call-uikit-react"; // Import TUICallKitServer
-import * as GenerateTestUserSig from "../debug/GenerateTestUserSig-es"; // Import hàm tạo userSig
+import { TUICallKitServer } from "@tencentcloud/call-uikit-react";
+import * as GenerateTestUserSig from "../debug/GenerateTestUserSig-es";
 
-const SDKAppID = 20022674; // Thay bằng AppID thực tế của bạn
+const SDKAppID = 20023019;
 const SDKSecretKey =
-  "4330ba37d08137345e2cad1cb1a588a4c59c040206ef90bcd508deeeaeb92918"; // Không dùng key này trong production
+  "4b710e4c87f271c6fe00067b6dfb8f13769564c8c82cd841628f487298bf1445";
 const Register = ({ isLogin, setIsLogin }) => {
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm(); // Sử dụng react-hook-form
+  } = useForm();
   const navigate = useNavigate();
   const handleAuth = async (data) => {
     try {
@@ -30,7 +30,6 @@ const Register = ({ isLogin, setIsLogin }) => {
       );
       const user = userCredential.user;
       console.log("User UID:", user.uid);
-      // Ghi vào Firebase Realtime Database
       console.log("User Ref Path:", `users/${user.uid}`);
 
       const userRef = ref(rtdb, `users/${user.uid}`);

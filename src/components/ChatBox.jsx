@@ -68,7 +68,6 @@ const ChatBox = ({ selectedUser, onBack }) => {
       return () => unsubscribe();
     }
   }, [isGroup, userData]);
-
   useEffect(() => {
     if (!chatId) return;
 
@@ -78,26 +77,38 @@ const ChatBox = ({ selectedUser, onBack }) => {
     if (isGroup) {
       // Sử dụng wrapper function để kiểm soát việc cuộn
       unsubscribe = listenForGroupMessages(chatId, (newMessages) => {
-        // Không trigger cuộn khi nhận tin nhắn từ người khác
-        setMessages(newMessages);
+        // Chỉ cập nhật tin nhắn cho cuộc trò chuyện đang được chọn
+        if (selectedUser && ((isGroup && groupData?.id === chatId) || (!isGroup && chatId.includes(userData?.uid)))) {
+          setMessages(newMessages);
+        }
       });
     } else {
       unsubscribe = listenForMessages(chatId, (newMessages) => {
-        setMessages(newMessages);
+        // Chỉ cập nhật tin nhắn cho cuộc trò chuyện đang được chọn
+        if (selectedUser && ((isGroup && groupData?.id === chatId) || (!isGroup && chatId.includes(userData?.uid)))) {
+          setMessages(newMessages);
+        }
       });
     }
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [chatId, isGroup]);
-
+  }, [chatId, isGroup, selectedUser, userData, groupData]);
   // Đánh dấu tin nhắn là đã đọc khi mở cuộc trò chuyện
+  const [lastSentMessageTime, setLastSentMessageTime] = useState(null);
+
   useEffect(() => {
     if (!chatId) return;
 
     // Đánh dấu tin nhắn là đã đọc ngay khi người dùng mở hội thoại
     const markAsRead = async () => {
+      // Không đánh dấu tin nhắn là đã đọc nếu vừa gửi tin nhắn
+      const now = Date.now();
+      if (lastSentMessageTime && now - lastSentMessageTime < 5000) {
+        return; // Bỏ qua đánh dấu đã đọc nếu chưa quá 5 giây từ khi gửi tin nhắn
+      }
+
       if (isGroup) {
         await markGroupAsRead(chatId);
       } else {
@@ -114,7 +125,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [chatId, isGroup]);
+  }, [chatId, isGroup, lastSentMessageTime]);
 
   // Lắng nghe trạng thái online của người dùng
   useEffect(() => {
@@ -189,9 +200,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
     return [...messages].sort((a, b) => {
       return a.timestamp - b.timestamp; // Tăng dần
     });
-  }, [messages]);
-
-  const handleSendMessage = async (e) => {
+  }, [messages]);  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!sendMessageText.trim()) {
       return;
@@ -200,6 +209,23 @@ const ChatBox = ({ selectedUser, onBack }) => {
     // Kích hoạt cuộn xuống dưới khi gửi tin nhắn mới
     setShouldScrollToBottom(true);
     setUserScrolling(false); // Đảm bảo rằng khi gửi tin nhắn mới, trạng thái cuộn được reset
+    
+    // Đánh dấu thời điểm vừa gửi tin nhắn để ngăn mark as read
+    setLastSentMessageTime(Date.now());
+    
+    // Đảm bảo rằng chúng ta đang gửi tin nhắn cho cuộc trò chuyện đang được chọn
+    if (!selectedUser) return;
+    
+    const currentChatId = isGroup
+      ? groupData?.id
+      : auth?.currentUser?.uid < userData?.uid
+      ? `${auth?.currentUser?.uid}-${userData?.uid}`
+      : `${userData?.uid}-${auth?.currentUser?.uid}`;
+      
+    if (currentChatId !== chatId) {
+      console.error("Mismatch between selected chat and target chat");
+      return;
+    }
 
     try {
       if (isGroup) {
@@ -274,7 +300,11 @@ const ChatBox = ({ selectedUser, onBack }) => {
                 ) : (
                   <div className="relative">
                     <img
-                      src={(userDetails[userData?.uid]?.image || userData?.image || imageDefault)}
+                      src={
+                        userDetails[userData?.uid]?.image ||
+                        userData?.image ||
+                        imageDefault
+                      }
                       className="w-11 h-11 object-cover rounded-full"
                       alt="User avatar"
                     />

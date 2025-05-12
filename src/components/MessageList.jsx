@@ -49,8 +49,7 @@ const MessageList = ({
   const [fileInputRef] = useState(React.createRef());
   const [selectedImage, setSelectedImage] = useState(null);
   const [isSpeechActive, setIsSpeechActive] = useState(false);
-  const [prevTranscript, setPrevTranscript] = useState(""); // Track previous transcript
-  // Store the message being replied to
+  const [prevTranscript, setPrevTranscript] = useState("");
 
   const chatBoxRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -59,8 +58,8 @@ const MessageList = ({
   const [showReactionBar, setShowReactionBar] = useState(null);
   const [messageWithOpenMenu, setMessageWithOpenMenu] = useState(null);
   const [messageWithOpenEmoji, setMessageWithOpenEmoji] = useState(null);
+
   const handleReaction = async (messageId, emoji) => {
-    // Xác định xem đây là chat 1-1 hay chat nhóm dựa theo selectedUser
     const isGroupChat = selectedUser?.type === "group";
 
     // Tạo đường dẫn tới nút reaction phù hợp
@@ -82,7 +81,7 @@ const MessageList = ({
       userId: senderEmail,
     });
 
-    setShowReactionBar(null); // Hide reaction bar after selecting
+    setShowReactionBar(null); 
   };
   // Speech recognition setup
   const {
@@ -411,35 +410,22 @@ const MessageList = ({
     setSelectedImage(null);
   };
 
-  // Custom handle send message with speech recognition support
   const handleSendMessageWithSpeech = (e) => {
     e.preventDefault();
-
-    // If speech recognition is active, stop it when sending
     if (listening) {
-      // Dừng listen trước tiên
       SpeechRecognition.stopListening();
       setIsSpeechActive(false);
-
-      // Gửi message với text hiện tại, không đợi transcript thêm vào
       setTimeout(() => {
-        // Reset sau khi đã gửi
         resetTranscript();
         setPrevTranscript("");
       }, 100);
     }
-
-    // Close emoji picker if open when sending message
     if (showEmojiPicker) {
       setShowEmojiPicker(false);
     }
-
-    // Call the original handleSendMessage function
     handleSendMessage(e);
-    // Reset replyingTo state after sending message
   };
 
-  // Cleanup speech recognition on component unmount
   useEffect(() => {
     return () => {
       if (listening) {
@@ -448,7 +434,6 @@ const MessageList = ({
     };
   }, [listening]);
 
-  // Thêm handler cho sự kiện cuộn
   useEffect(() => {
     const scrollContainer = scrollRef.current;
 
@@ -465,7 +450,6 @@ const MessageList = ({
 
   return (
     <main className="custom-scrollbar relative h-full w-[100%] flex flex-col justify-between">
-      {/* Hidden file input for manual file selection */}
       <input
         type="file"
         ref={fileInputRef}
@@ -473,7 +457,7 @@ const MessageList = ({
         onChange={(e) => {
           if (e.target.files && e.target.files[0]) {
             handleFileUpload(e.target.files[0]);
-            e.target.value = null; // Reset input
+            e.target.value = null; 
           }
         }}
       />
@@ -509,7 +493,6 @@ const MessageList = ({
                             alt={msg.name}
                             className="max-w-[250px] max-h-[300px] rounded-lg shadow-sm object-cover"
                             onLoad={() => {
-                              // Scroll to bottom when image loads
                               if (scrollRef.current) {
                                 scrollRef.current.scrollTop =
                                   scrollRef.current.scrollHeight;
@@ -578,28 +561,24 @@ const MessageList = ({
                         </div>
                       ) : (
                         <div className="bg-white relative flex flex-col justify-end px-4 py-2 rounded-lg shadow-sm break-all break-words whitespace-pre-wrap max-w-[75vw]">
-                          {/* Display reply preview if this is a reply to another message */}
+                          {/* Hightlight tin nhắn được reply khi click */}
                           {msg.replyTo && (
                             <div
                               className="bg-gray-100 p-2 rounded-t-lg border-l-4 border-teal-500 mb-2 max-w-full cursor-pointer hover:bg-gray-200 transition-colors"
                               onClick={() => {
-                                // Find the message being replied to
                                 const originalMessage = messages.find(
                                   (m) => m.messageId === msg.replyTo
                                 );
                                 if (originalMessage) {
-                                  // Get the element for the original message
                                   const originalMessageElement =
                                     document.getElementById(
                                       `message-${msg.replyTo}`
                                     );
                                   if (originalMessageElement) {
-                                    // Scroll to the message
                                     originalMessageElement.scrollIntoView({
                                       behavior: "smooth",
                                       block: "center",
                                     });
-                                    // Highlight the message briefly
                                     originalMessageElement.classList.add(
                                       "highlight-message"
                                     );

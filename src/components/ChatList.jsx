@@ -24,15 +24,15 @@ import CreateGroupModal from "./CreateGroupModal";
 const ChatList = ({ setSelectedUser }) => {
   const [chats, setChats] = useState([]);
   const [groups, setGroups] = useState([]);
-  const [user, setUser] = useState(null); // State to hold the current user
-  const [userDetails, setUserDetails] = useState({}); // Lưu thông tin người dùng theo UID
-  const [showProfileModal, setShowProfileModal] = useState(false); // State để kiểm soát hiển thị modal
-  const [selectedProfile, setSelectedProfile] = useState(null); // State để lưu thông tin người dùng được chọn
+  const [user, setUser] = useState(null);
+  const [userDetails, setUserDetails] = useState({});
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-  const [activeTab, setActiveTab] = useState("chats"); // 'chats' or 'groups'
-  const [unreadCounts, setUnreadCounts] = useState({}); // Lưu số lượng tin nhắn chưa đọc của từng chat
-  const [unreadGroupCounts, setUnreadGroupCounts] = useState({}); // Lưu số lượng tin nhắn chưa đọc của từng nhóm
-  const [groupSenderNames, setGroupSenderNames] = useState({}); // Lưu tên người gửi tin nhắn cuối cùng trong nhóm
+  const [activeTab, setActiveTab] = useState("chats");
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const [unreadGroupCounts, setUnreadGroupCounts] = useState({});
+  const [groupSenderNames, setGroupSenderNames] = useState({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -55,24 +55,18 @@ const ChatList = ({ setSelectedUser }) => {
   }, []);
   useEffect(() => {
     const unSubscribe = listenForChats(setChats);
-    // Listen for chat updates from Firebase
     const unsubscribeGroups = listenForGroups(setGroups);
     return () => {
       unSubscribe();
-      unsubscribeGroups(); // Unsubscribe from the listener when the component unmounts
+      unsubscribeGroups();
     };
   }, []);
 
-  // Lắng nghe số lượng tin nhắn chưa đọc
   useEffect(() => {
     if (!auth.currentUser) return;
-
-    // Lắng nghe số lượng tin nhắn chưa đọc trong chat cá nhân
     const unreadChatsUnsubscribe = listenForUnreadCounts((counts) => {
       setUnreadCounts(counts);
     });
-
-    // Lắng nghe số lượng tin nhắn chưa đọc trong nhóm
     const unreadGroupsUnsubscribe = listenForUnreadGroupCounts((counts) => {
       setUnreadGroupCounts(counts);
     });
@@ -84,13 +78,12 @@ const ChatList = ({ setSelectedUser }) => {
   }, []);
 
   const fetchUserDetails = (uid) => {
-    if (userDetails[uid]) return; // Nếu đã có thông tin, không cần lấy lại
+    if (userDetails[uid]) return;
 
     const userRef = ref(rtdb, `users/${uid}`);
     onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
         const userData = snapshot.val();
-        // Lắng nghe thay đổi trạng thái online
         setUserDetails((prev) => ({
           ...prev,
           [uid]: {
@@ -104,12 +97,12 @@ const ChatList = ({ setSelectedUser }) => {
   };
   const getTimestampValue = (timestamp) => {
     if (!timestamp) return 0;
-    if (typeof timestamp === "number") return timestamp; // milliseconds
+    if (typeof timestamp === "number") return timestamp;
     if (
       timestamp.seconds !== undefined &&
       timestamp.nanoseconds !== undefined
     ) {
-      return timestamp.seconds * 1000 + timestamp.nanoseconds / 1e6; // convert to ms
+      return timestamp.seconds * 1000 + timestamp.nanoseconds / 1e6;
     }
     return 0;
   };
@@ -129,20 +122,18 @@ const ChatList = ({ setSelectedUser }) => {
     });
   }, [groups]);
   const startChat = (user) => {
-    setSelectedUser(user); // Reset selected user when starting a new chat
+    setSelectedUser(user);
   };
   const startGroupChat = (group) => {
     setSelectedUser({
       type: "group",
       data: group,
-    }); // Reset selected user when starting a new chat
+    });
   };
   const openProfileModal = (profileUser) => {
     setSelectedProfile(profileUser);
     setShowProfileModal(true);
   };
-
-  // Hàm đóng modal profile
   const closeProfileModal = () => {
     setShowProfileModal(false);
   };
@@ -154,7 +145,6 @@ const ChatList = ({ setSelectedUser }) => {
     setShowCreateGroupModal(false);
   };
 
-  // Hàm lấy tên người gửi tin nhắn cuối cùng trong nhóm
   const fetchLastMessageSender = async (senderId) => {
     if (!senderId || groupSenderNames[senderId]) return;
 
@@ -169,8 +159,6 @@ const ChatList = ({ setSelectedUser }) => {
       }
     });
   };
-
-  // Lấy thông tin người gửi tin nhắn cuối cùng trong các nhóm
   useEffect(() => {
     groups.forEach((group) => {
       if (group.lastMessageSenderId) {
@@ -294,7 +282,7 @@ const ChatList = ({ setSelectedUser }) => {
                       {formatTimestamp(chat?.lastMessageTimestamp)}
                     </p>
 
-                    {/* Hiển thị số lượng tin nhắn chưa đọc */}
+                    {/* Số lượng tin nhắn chưa đọc */}
                     {unreadCounts[chat?.id] > 0 && (
                       <div className="bg-teal-500 text-white rounded-full h-5 min-w-5 flex items-center justify-center text-xs font-medium px-1 mt-1">
                         {unreadCounts[chat?.id] > 99

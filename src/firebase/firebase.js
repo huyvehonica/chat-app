@@ -53,7 +53,7 @@ export const listenForChats = (setChats) => {
 };
 export const listenForMessages = (chatId, setMessages) => {
   const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
-  onValue(messagesRef, (snapshot) => {
+  const unsubscribe = onValue(messagesRef, (snapshot) => {
     const messages = [];
     snapshot.forEach((childSnapshot) => {
       messages.push({
@@ -61,8 +61,15 @@ export const listenForMessages = (chatId, setMessages) => {
         ...childSnapshot.val(),
       });
     });
+    messages.sort((a, b) => {
+      const aTime = a.timestamp ? (typeof a.timestamp === 'number' ? a.timestamp : a.timestamp.seconds * 1000) : 0;
+      const bTime = b.timestamp ? (typeof b.timestamp === 'number' ? b.timestamp : b.timestamp.seconds * 1000) : 0;
+      return aTime - bTime;
+    });
     setMessages(messages);
   });
+  
+  return unsubscribe;
 };
 
 export const sendMessage = async (messagesText, chatId, user1, user2) => {
@@ -83,37 +90,33 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
     lastMessageSenderId: currentUserId,
     lastMessageTimestamp: serverTimestamp(),
   };
-  const chatSnapshot = await get(chatRef); // Kiểm tra chat có tồn tại không
+  const chatSnapshot = await get(chatRef);
   if (!chatSnapshot.exists()) {
-    await set(chatRef, chatData); // Tạo chat mới nếu không tồn tại
+    await set(chatRef, chatData);
   } else {
     await update(chatRef, {
       lastMessage: messagesText,
       lastMessageSenderId: currentUserId,
       lastMessageTimestamp: serverTimestamp(),
-    }); // Cập nhật tin nhắn cuối cùng
+    });
   }
-
-  // Check if this is a reply message
+  // Xử lý reply tin nhắn và gửi tin nhắn
   const replyData = window.replyingToMessage;
 
   const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
   const newMessageRef = push(messagesRef);
 
-  // Create message data
   const messageData = {
     text: messagesText,
     sender: user1,
     timestamp: serverTimestamp(),
   };
 
-  // Add reply information if present
   if (replyData) {
     messageData.replyTo = replyData.messageId;
     messageData.replyToSender = replyData.sender;
     messageData.replyToText = replyData.text;
 
-    // For user display names, get the sender name if available
     if (replyData.sender) {
       const userRef = ref(rtdb, `users/${replyData.sender}`);
       const userSnapshot = await get(userRef);
@@ -122,7 +125,6 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
       }
     }
 
-    // Handle different message types in replies
     if (replyData.type) {
       messageData.replyToType = replyData.type;
       if (replyData.type === "file" || replyData.type === "image") {
@@ -130,20 +132,17 @@ export const sendMessage = async (messagesText, chatId, user1, user2) => {
       }
     }
 
-    // Reset reply data
     window.replyingToMessage = null;
   }
 
   await set(newMessageRef, messageData);
 
   // Đánh dấu tin nhắn là chưa đọc cho người nhận
-  const receiverId = user2; // Người nhận là người còn lại trong cuộc trò chuyện
+  const receiverId = user2;
   if (receiverId !== currentUserId) {
     await markMessageAsUnread(chatId, newMessageRef.key, receiverId);
   }
 };
-
-// Initialize Firebase
 
 setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error("Error setting persistence:", error);
@@ -156,11 +155,11 @@ export const initiateCall = async (callerUid, calleeUid, callType) => {
   await set(callRef, {
     callId,
     callerUid,
-    calleeUid, // Make sure this property is consistently named
-    receiverUid: calleeUid, // Add this for backward compatibility
+    calleeUid,
+    receiverUid: calleeUid,
     callType,
     status: "initiating",
-    isGroupCall: false, // Explicitly mark as not a group call
+    isGroupCall: false,
     createdAt: serverTimestamp(),
   });
 
@@ -168,7 +167,6 @@ export const initiateCall = async (callerUid, calleeUid, callType) => {
 };
 export const initiateGroupCall = async (callerUid, groupId, callType) => {
   try {
-    // Get group members
     const groupRef = ref(rtdb, `groups/${groupId}`);
     const groupSnapshot = await get(groupRef);
 
@@ -177,7 +175,6 @@ export const initiateGroupCall = async (callerUid, groupId, callType) => {
     }
 
     const groupData = groupSnapshot.val();
-    // Get all members except the caller
     const memberUids = Object.keys(groupData.members || {}).filter(
       (uid) => uid !== callerUid
     );
@@ -186,15 +183,13 @@ export const initiateGroupCall = async (callerUid, groupId, callType) => {
       throw new Error("No other members in the group");
     }
 
-    // Create a unique call ID
     const callId = `group-${groupId}-${Date.now()}`;
     const callRef = ref(rtdb, `calls/${callId}`);
 
-    // Save call information
     await set(callRef, {
       callId,
       callerUid,
-      calleeUids: memberUids, // Array of all members to be called
+      calleeUids: memberUids, // Danh sách member được gọi
       groupId,
       isGroupCall: true,
       callType,
@@ -689,11 +684,19 @@ export const markChatAsRead = async (chatId) => {
   const currentUserId = auth.currentUser?.uid;
   if (!currentUserId || !chatId) return;
 
-  // Xóa thông tin tin nhắn chưa đọc trong chat
+  // Kiểm tra xem có tin nhắn chưa đọc nào không
   const unreadMessagesRef = ref(
     rtdb,
     `chats/${chatId}/unreadMessages/${currentUserId}`
   );
+  const unreadSnapshot = await get(unreadMessagesRef);
+
+  // Nếu không có tin nhắn chưa đọc, không cần thực hiện các bước tiếp theo
+  if (!unreadSnapshot.exists()) {
+    return;
+  }
+
+  // Xóa thông tin tin nhắn chưa đọc trong chat
   await set(unreadMessagesRef, null);
 
   // Xóa thông tin số lượng tin nhắn chưa đọc cho người dùng hiện tại
@@ -753,11 +756,19 @@ export const markGroupAsRead = async (groupId) => {
   const currentUserId = auth.currentUser?.uid;
   if (!currentUserId || !groupId) return;
 
-  // Xóa thông tin tin nhắn chưa đọc trong nhóm
+  // Kiểm tra xem có tin nhắn chưa đọc nào không
   const unreadMessagesRef = ref(
     rtdb,
     `groups/${groupId}/unreadMessages/${currentUserId}`
   );
+  const unreadSnapshot = await get(unreadMessagesRef);
+
+  // Nếu không có tin nhắn chưa đọc, không cần thực hiện các bước tiếp theo
+  if (!unreadSnapshot.exists()) {
+    return;
+  }
+
+  // Xóa thông tin tin nhắn chưa đọc trong nhóm
   await set(unreadMessagesRef, null);
 
   // Xóa thông tin số lượng tin nhắn chưa đọc cho người dùng hiện tại

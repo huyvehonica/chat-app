@@ -29,12 +29,12 @@ const App = () => {
 
   const [selectedUser, setSelectedUser] = React.useState(null);
   const [showChatBox, setShowChatBox] = React.useState(false);
+  const [notificationCount, setNotificationCount] = React.useState({});
   const isMobileView = useResponsiveView();
 
   useEffect(() => {
     const unsubscribe = listenToAuthChanges();
 
-    // Check for dark mode preference in localStorage and apply it
     const darkModePreference = localStorage.getItem("darkMode") === "true";
     if (darkModePreference) {
       document.documentElement.classList.add("dark");
@@ -42,23 +42,18 @@ const App = () => {
       document.documentElement.classList.remove("dark");
     }
 
-    return () => unsubscribe(); // Cleanup
+    return () => unsubscribe(); 
   }, []);
 
-  // Thiết lập hệ thống theo dõi trạng thái online khi người dùng đăng nhập
   useEffect(() => {
     let presenceUnsubscribe = () => {};
 
     if (isLoggedIn) {
-      // Cập nhật trạng thái thành online khi đăng nhập
       updateUserOnlineStatus("online");
-
-      // Thiết lập hệ thống theo dõi trạng thái online
       presenceUnsubscribe = setupPresenceSystem();
     }
 
     return () => {
-      // Dọn dẹp listener khi component unmount
       presenceUnsubscribe();
     };
   }, [isLoggedIn]);

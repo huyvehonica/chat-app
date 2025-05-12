@@ -1,11 +1,10 @@
 import LibGenerateTestUserSig from "./lib-generate-test-usersig-es.min.js";
 
 /**
- * Refer to the READEME.md for the SDKAppID、SecretKey
+ * Lấy SDKAppID và SecretKey từ biến môi trường
  */
-let SDKAppID = 20022132;
-let SecretKey =
-  "c25c392a16a1905567574b56e1423b87f7bfaab08d4e66838d80c071652db0fc";
+let SDKAppID = import.meta.env.VITE_TENCENTRTC_APPID ? parseInt(import.meta.env.VITE_TENCENTRTC_APPID) : 0;
+let SecretKey = import.meta.env.VITE_TENCENTRTC_SDKSECRETKEY || "";
 
 /**
  * Expiration time for the signature, it is recommended not to set it too short.
