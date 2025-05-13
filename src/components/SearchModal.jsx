@@ -46,12 +46,21 @@ const SearchModal = ({ startChat, currentUser }) => {
 
       if (snapshot.exists()) {
         const usersData = snapshot.val();
-        const matchedUsers = Object.values(usersData).filter(
-          (user) =>
+        const matchedUsers = Object.values(usersData).filter((user) => {
+          // Kiểm tra xem người dùng có khớp với điều kiện tìm kiếm không
+          const usernameMatch =
             user.username &&
-            user.username.toLowerCase().includes(normalizedSearchTerm) &&
-            user.uid !== currentUser?.uid
-        );
+            user.username.toLowerCase().includes(normalizedSearchTerm);
+          const emailMatch =
+            user.email &&
+            user.email.toLowerCase().includes(normalizedSearchTerm);
+
+          // Người dùng phải không phải là người dùng hiện tại
+          const notCurrentUser = user.uid !== currentUser?.uid;
+
+          // Trả về true nếu khớp username hoặc email và không phải người dùng hiện tại
+          return (usernameMatch || emailMatch) && notCurrentUser;
+        });
         console.log("Matched Users:", matchedUsers);
         setUsers(matchedUsers);
         if (matchedUsers.length === 0) {
@@ -132,11 +141,13 @@ const SearchModal = ({ startChat, currentUser }) => {
                   <div className="p-4 md:p-5">
                     <div className="space-y-4">
                       <div className="flex gap-2">
+                        {" "}
                         <input
                           type="text"
                           value={searchTem}
                           onChange={handleInputChange}
                           className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg outline-none w-full p-2.5"
+                          placeholder="Tìm kiếm theo tên người dùng hoặc email"
                         />
                         <button
                           onClick={() => handleSearch(searchTem)}
@@ -163,14 +174,19 @@ const SearchModal = ({ startChat, currentUser }) => {
                               src={user?.image || imageDefault}
                               className="w-11 h-11 object-cover rounded-full"
                               alt=""
-                            />
+                            />{" "}
                             <span>
                               <h2 className="p-0 font-semibold text-white text-[18px]">
                                 {user?.fullName || "User"}
                               </h2>
                               <p className="text-[13px] text-white">
-                                {user?.username}
+                                @{user?.username}
                               </p>
+                              {user?.email && (
+                                <p className="text-[12px] text-gray-200">
+                                  {user.email}
+                                </p>
+                              )}
                             </span>
                           </div>
                         );
