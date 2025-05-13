@@ -47,19 +47,19 @@ const RecipientMessage = ({
     };
     console.log("Sender ID:", senderInfo);
     fetchSenderInfo();
-  }, [msg.sender]);  // Scroll to bottom when a new message is rendered
+  }, [msg.sender]); // Scroll to bottom when a new message is rendered
   useEffect(() => {
     // Only auto-scroll if this is a newly received message
     if (msg.timestamp && Date.now() - msg.timestamp < 2000) {
       // Auto-scroll to bottom when recipient message is rendered
       const scrollToBottomOfChat = () => {
-        // Find the scrollable container 
-        const messageContainer = document.querySelector('.custom-scrollbar');
+        // Find the scrollable container
+        const messageContainer = document.querySelector(".custom-scrollbar");
         if (messageContainer) {
           messageContainer.scrollTop = messageContainer.scrollHeight;
         }
       };
-      
+
       // Short delay to ensure message is fully rendered before scrolling
       setTimeout(scrollToBottomOfChat, 100);
     }

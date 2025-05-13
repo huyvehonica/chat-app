@@ -67,7 +67,8 @@ const ChatBox = ({ selectedUser, onBack }) => {
 
       return () => unsubscribe();
     }
-  }, [isGroup, userData]);  useEffect(() => {
+  }, [isGroup, userData]);
+  useEffect(() => {
     if (!chatId) return;
 
     console.log("Chat ID:", chatId, groupData);
@@ -84,16 +85,16 @@ const ChatBox = ({ selectedUser, onBack }) => {
         ) {
           // Check if there are new messages from others
           const hasNewMessagesFromOthers = newMessages.some(
-            (msg) => 
-              msg.sender !== auth?.currentUser?.uid && 
-              (!messages.find((m) => m.messageId === msg.messageId))
+            (msg) =>
+              msg.sender !== auth?.currentUser?.uid &&
+              !messages.find((m) => m.messageId === msg.messageId)
           );
-          
+
           // Auto-scroll when new messages arrive from others
           if (hasNewMessagesFromOthers && !userScrolling) {
             setShouldScrollToBottom(true);
           }
-          
+
           setMessages(newMessages);
         }
       });
@@ -107,16 +108,16 @@ const ChatBox = ({ selectedUser, onBack }) => {
         ) {
           // Check if there are new messages from others
           const hasNewMessagesFromOthers = newMessages.some(
-            (msg) => 
-              msg.sender !== auth?.currentUser?.uid && 
-              (!messages.find((m) => m.messageId === msg.messageId))
+            (msg) =>
+              msg.sender !== auth?.currentUser?.uid &&
+              !messages.find((m) => m.messageId === msg.messageId)
           );
-          
+
           // Auto-scroll when new messages arrive from others
           if (hasNewMessagesFromOthers && !userScrolling) {
             setShouldScrollToBottom(true);
           }
-          
+
           setMessages(newMessages);
         }
       });
@@ -125,14 +126,21 @@ const ChatBox = ({ selectedUser, onBack }) => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [chatId, isGroup, selectedUser, userData, groupData, messages, userScrolling]);
+  }, [
+    chatId,
+    isGroup,
+    selectedUser,
+    userData,
+    groupData,
+    messages,
+    userScrolling,
+  ]);
   // Đánh dấu tin nhắn là đã đọc khi mở cuộc trò chuyện
   const [lastSentMessageTime, setLastSentMessageTime] = useState(null);
 
   useEffect(() => {
     if (!chatId) return;
 
-    // Đánh dấu tin nhắn là đã đọc ngay khi người dùng mở hội thoại
     const markAsRead = async () => {
       // Không đánh dấu tin nhắn là đã đọc nếu vừa gửi tin nhắn
       const now = Date.now();
