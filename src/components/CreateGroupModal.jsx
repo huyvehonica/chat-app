@@ -46,16 +46,15 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
             const uid = childSnapshot.key;
 
             // Không hiển thị người dùng hiện tại trong kết quả tìm kiếm
-            if (uid === auth.currentUser.uid) return;
-
-            // Tìm kiếm theo tên hoặc username
+            if (uid === auth.currentUser.uid) return; // Tìm kiếm theo tên, username hoặc email
             if (
               userData.fullName
                 ?.toLowerCase()
                 .includes(searchTerm.toLowerCase()) ||
               userData.username
                 ?.toLowerCase()
-                .includes(searchTerm.toLowerCase())
+                .includes(searchTerm.toLowerCase()) ||
+              userData.email?.toLowerCase().includes(searchTerm.toLowerCase())
             ) {
               users.push({
                 uid,
@@ -166,7 +165,7 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                 <div className="mb-4">
                   <label className="block text-gray-700 dark:text-white text-sm font-medium mb-2">
                     Add members
-                  </label>
+                  </label>{" "}
                   <input
                     type="text"
                     value={searchTerm}
@@ -174,7 +173,6 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                     className="w-full px-3 py-2 border dark:text-white border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="Find friends by name or username"
                   />
-
                   {/* Hiển thị kết quả tìm kiếm */}
                   {searching && (
                     <div className="flex justify-center mt-2">
@@ -184,7 +182,6 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                       />
                     </div>
                   )}
-
                   {searchResults.length > 0 && (
                     <div className="mt-2 border border-gray-200 rounded-md max-h-40 overflow-y-auto">
                       {searchResults.map((user) => (
@@ -197,14 +194,19 @@ const CreateGroupModal = ({ isOpen, onClose }) => {
                             src={user.image || imageDefault}
                             alt={user.fullName}
                             className="w-8 h-8 rounded-full mr-2 object-cover"
-                          />
+                          />{" "}
                           <div>
                             <p className="font-medium text-gray-800 dark:text-white">
                               {user.fullName}
                             </p>
-                            <p className="text-sm text-gray-500 dark:text-white">
+                            {/* <p className="text-sm text-gray-500 dark:text-white">
                               @{user.username}
-                            </p>
+                            </p> */}
+                            {user.email && (
+                              <p className="text-xs text-gray-400 dark:text-gray-300">
+                                {user.email}
+                              </p>
+                            )}
                           </div>
                         </div>
                       ))}
