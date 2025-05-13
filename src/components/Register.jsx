@@ -10,9 +10,11 @@ import { ref, set } from "firebase/database";
 import { TUICallKitServer } from "@tencentcloud/call-uikit-react";
 import * as GenerateTestUserSig from "../debug/GenerateTestUserSig-es";
 
-const SDKAppID = 20023019;
-const SDKSecretKey =
-  "4b710e4c87f271c6fe00067b6dfb8f13769564c8c82cd841628f487298bf1445";
+const SDKAppID = import.meta.env.VITE_TENCENTRTC_APPID
+  ? parseInt(import.meta.env.VITE_TENCENTRTC_APPID)
+  : 0;
+const SDKSecretKey = import.meta.env.VITE_TENCENTRTC_SDKSECRETKEY || "";
+
 const Register = ({ isLogin, setIsLogin }) => {
   const {
     register,
