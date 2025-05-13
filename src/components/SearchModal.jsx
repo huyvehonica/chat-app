@@ -53,8 +53,14 @@ const SearchModal = ({ startChat, currentUser }) => {
           const emailMatch =
             user.email &&
             user.email.toLowerCase().includes(normalizedSearchTerm);
-          const notCurrentUser = user.uid !== currentUser?.uid;
-          return (usernameMatch || emailMatch) && notCurrentUser;
+
+          // Lọc bỏ người dùng hiện tại - kiểm tra cả UID và email
+          const isCurrentUser =
+            currentUser &&
+            (user.uid === currentUser.uid || user.email === currentUser.email);
+
+          // Trả về true nếu tin nhắn khớp với từ khóa tìm kiếm và KHÔNG PHẢI người dùng hiện tại
+          return (usernameMatch || emailMatch) && !isCurrentUser;
         });
         console.log("Matched Users:", matchedUsers);
         setUsers(matchedUsers);
