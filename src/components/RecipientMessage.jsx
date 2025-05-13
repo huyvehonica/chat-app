@@ -302,7 +302,7 @@ const RecipientMessage = ({
                     ([emoji, reactions]) => (
                       <div
                         key={emoji}
-                        className="bg-gray-100 rounded-full text-sm hover:bg-gray-200 flex items-center gap-[1px]"
+                        className="bg-gray-100 rounded-full text-sm hover:bg-gray-200 flex items-center gap-[1px] dark:text-blue-800"
                       >
                         <span>{emoji}</span>
                         {reactions.length > 1 && (
