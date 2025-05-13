@@ -47,18 +47,13 @@ const SearchModal = ({ startChat, currentUser }) => {
       if (snapshot.exists()) {
         const usersData = snapshot.val();
         const matchedUsers = Object.values(usersData).filter((user) => {
-          // Kiểm tra xem người dùng có khớp với điều kiện tìm kiếm không
           const usernameMatch =
             user.username &&
             user.username.toLowerCase().includes(normalizedSearchTerm);
           const emailMatch =
             user.email &&
             user.email.toLowerCase().includes(normalizedSearchTerm);
-
-          // Người dùng phải không phải là người dùng hiện tại
           const notCurrentUser = user.uid !== currentUser?.uid;
-
-          // Trả về true nếu khớp username hoặc email và không phải người dùng hiện tại
           return (usernameMatch || emailMatch) && notCurrentUser;
         });
         console.log("Matched Users:", matchedUsers);
@@ -179,9 +174,9 @@ const SearchModal = ({ startChat, currentUser }) => {
                               <h2 className="p-0 font-semibold text-white text-[18px]">
                                 {user?.fullName || "User"}
                               </h2>
-                              <p className="text-[13px] text-white">
+                              {/* <p className="text-[13px] text-white">
                                 @{user?.username}
-                              </p>
+                              </p> */}
                               {user?.email && (
                                 <p className="text-[12px] text-gray-200">
                                   {user.email}
