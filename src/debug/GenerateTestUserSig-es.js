@@ -1,9 +1,8 @@
 import LibGenerateTestUserSig from "./lib-generate-test-usersig-es.min.js";
 
-/**
- * Lấy SDKAppID và SecretKey từ biến môi trường
- */
-let SDKAppID = import.meta.env.VITE_TENCENTRTC_APPID ? parseInt(import.meta.env.VITE_TENCENTRTC_APPID) : 0;
+let SDKAppID = import.meta.env.VITE_TENCENTRTC_APPID
+  ? parseInt(import.meta.env.VITE_TENCENTRTC_APPID)
+  : 0;
 let SecretKey = import.meta.env.VITE_TENCENTRTC_SDKSECRETKEY || "";
 
 /**

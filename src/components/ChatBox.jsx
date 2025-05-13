@@ -67,8 +67,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
 
       return () => unsubscribe();
     }
-  }, [isGroup, userData]);
-  useEffect(() => {
+  }, [isGroup, userData]);  useEffect(() => {
     if (!chatId) return;
 
     console.log("Chat ID:", chatId, groupData);
@@ -78,14 +77,46 @@ const ChatBox = ({ selectedUser, onBack }) => {
       // Sử dụng wrapper function để kiểm soát việc cuộn
       unsubscribe = listenForGroupMessages(chatId, (newMessages) => {
         // Chỉ cập nhật tin nhắn cho cuộc trò chuyện đang được chọn
-        if (selectedUser && ((isGroup && groupData?.id === chatId) || (!isGroup && chatId.includes(userData?.uid)))) {
+        if (
+          selectedUser &&
+          ((isGroup && groupData?.id === chatId) ||
+            (!isGroup && chatId.includes(userData?.uid)))
+        ) {
+          // Check if there are new messages from others
+          const hasNewMessagesFromOthers = newMessages.some(
+            (msg) => 
+              msg.sender !== auth?.currentUser?.uid && 
+              (!messages.find((m) => m.messageId === msg.messageId))
+          );
+          
+          // Auto-scroll when new messages arrive from others
+          if (hasNewMessagesFromOthers && !userScrolling) {
+            setShouldScrollToBottom(true);
+          }
+          
           setMessages(newMessages);
         }
       });
     } else {
       unsubscribe = listenForMessages(chatId, (newMessages) => {
         // Chỉ cập nhật tin nhắn cho cuộc trò chuyện đang được chọn
-        if (selectedUser && ((isGroup && groupData?.id === chatId) || (!isGroup && chatId.includes(userData?.uid)))) {
+        if (
+          selectedUser &&
+          ((isGroup && groupData?.id === chatId) ||
+            (!isGroup && chatId.includes(userData?.uid)))
+        ) {
+          // Check if there are new messages from others
+          const hasNewMessagesFromOthers = newMessages.some(
+            (msg) => 
+              msg.sender !== auth?.currentUser?.uid && 
+              (!messages.find((m) => m.messageId === msg.messageId))
+          );
+          
+          // Auto-scroll when new messages arrive from others
+          if (hasNewMessagesFromOthers && !userScrolling) {
+            setShouldScrollToBottom(true);
+          }
+          
           setMessages(newMessages);
         }
       });
@@ -94,7 +125,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [chatId, isGroup, selectedUser, userData, groupData]);
+  }, [chatId, isGroup, selectedUser, userData, groupData, messages, userScrolling]);
   // Đánh dấu tin nhắn là đã đọc khi mở cuộc trò chuyện
   const [lastSentMessageTime, setLastSentMessageTime] = useState(null);
 
@@ -173,19 +204,17 @@ const ChatBox = ({ selectedUser, onBack }) => {
 
     setScrollTimeout(newTimeout);
   };
-
   // Effect chỉ cuộn xuống khi shouldScrollToBottom = true và người dùng không đang cuộn
   useEffect(() => {
-    if (scrollRef.current && shouldScrollToBottom && !userScrolling) {
+    if (scrollRef.current && shouldScrollToBottom) {
       const timer = setTimeout(() => {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        // Chỉ reset shouldScrollToBottom nếu không phải là tin nhắn mới
         setShouldScrollToBottom(false);
       }, 100);
 
       return () => clearTimeout(timer);
     }
-  }, [messages, shouldScrollToBottom, userScrolling]);
+  }, [messages, shouldScrollToBottom]);
 
   // Cleanup timeouts khi component unmount
   useEffect(() => {
@@ -198,30 +227,28 @@ const ChatBox = ({ selectedUser, onBack }) => {
 
   const sortedMessages = useMemo(() => {
     return [...messages].sort((a, b) => {
-      return a.timestamp - b.timestamp; // Tăng dần
+      return a.timestamp - b.timestamp;
     });
-  }, [messages]);  const handleSendMessage = async (e) => {
+  }, [messages]);
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!sendMessageText.trim()) {
       return;
     }
 
-    // Kích hoạt cuộn xuống dưới khi gửi tin nhắn mới
     setShouldScrollToBottom(true);
-    setUserScrolling(false); // Đảm bảo rằng khi gửi tin nhắn mới, trạng thái cuộn được reset
-    
-    // Đánh dấu thời điểm vừa gửi tin nhắn để ngăn mark as read
+    setUserScrolling(false);
+
     setLastSentMessageTime(Date.now());
-    
-    // Đảm bảo rằng chúng ta đang gửi tin nhắn cho cuộc trò chuyện đang được chọn
+
     if (!selectedUser) return;
-    
+
     const currentChatId = isGroup
       ? groupData?.id
       : auth?.currentUser?.uid < userData?.uid
       ? `${auth?.currentUser?.uid}-${userData?.uid}`
       : `${userData?.uid}-${auth?.currentUser?.uid}`;
-      
+
     if (currentChatId !== chatId) {
       console.error("Mismatch between selected chat and target chat");
       return;
@@ -229,15 +256,13 @@ const ChatBox = ({ selectedUser, onBack }) => {
 
     try {
       if (isGroup) {
-        // Send message to group
         await sendGroupMessage(sendMessageText, chatId);
       } else {
         await sendMessage(sendMessageText, chatId, user1, user2);
       }
 
-      // Reset input field after sending
       setSendMessageText("");
-      setReplyingTo(null); // Reset trạng thái replyingTo sau khi gửi tin nhắn
+      setReplyingTo(null);
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -250,18 +275,16 @@ const ChatBox = ({ selectedUser, onBack }) => {
 
     try {
       if (isGroup) {
-        // For group calls
         const { callId, memberUids } = await initiateGroupCall(
           auth.currentUser.uid,
           chatId,
           "video"
         );
 
-        // Navigate to video call page for group call
         const videoCallUrl = `/video-call?callId=${callId}&callerUserID=${auth.currentUser.uid}&isGroup=true&groupId=${chatId}`;
         window.open(videoCallUrl, "_blank", "width=800,height=600");
       } else {
-        // For individual calls (existing code)
+        // Gọi 1-1
         const callId = await initiateCall(
           auth.currentUser.uid,
           selectedUser.uid,
@@ -325,7 +348,7 @@ const ChatBox = ({ selectedUser, onBack }) => {
                           Object.keys(groupData?.members || {}).length
                         } members`
                       : onlineStatus.status === "online"
-                      ? "Đang hoạt động"
+                      ? "Online"
                       : onlineStatus.lastSeen
                       ? formatTimestamp(onlineStatus.lastSeen, true)
                       : userData?.username || "Chatfrik User"}

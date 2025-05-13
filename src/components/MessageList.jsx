@@ -62,7 +62,6 @@ const MessageList = ({
   const handleReaction = async (messageId, emoji) => {
     const isGroupChat = selectedUser?.type === "group";
 
-    // Tạo đường dẫn tới nút reaction phù hợp
     const reactionPath = isGroupChat
       ? `groups/${chatId}/messages/${messageId}/reactions/${senderEmail.replace(
           /[.#$\/[\]]/g,
@@ -82,7 +81,7 @@ const MessageList = ({
     });
 
     setShowReactionBar(null);
-  }; // Speech recognition setup
+  };
   const {
     transcript,
     listening,
@@ -90,22 +89,10 @@ const MessageList = ({
     browserSupportsSpeechRecognition,
   } = useSpeechRecognition();
 
-  // Thêm state để theo dõi trạng thái quyền microphone
   const [micPermissionState, setMicPermissionState] = useState("unknown");
   const [speechInitialized, setSpeechInitialized] = useState(false);
 
-  // Kiểm tra trạng thái quyền và môi trường khi component được tải
   useEffect(() => {
-    // Ghi log thông tin môi trường để debug
-    console.log("Speech Recognition Debug:", {
-      protocol: window.location.protocol,
-      isSecureContext: window.isSecureContext,
-      browserSupport: browserSupportsSpeechRecognition,
-      userAgent: navigator.userAgent,
-      hostname: window.location.hostname,
-    });
-
-    // Kiểm tra quyền microphone nếu API có sẵn
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions
         .query({ name: "microphone" })
@@ -113,7 +100,6 @@ const MessageList = ({
           console.log("Microphone permission:", permissionStatus.state);
           setMicPermissionState(permissionStatus.state);
 
-          // Lắng nghe thay đổi trạng thái quyền
           permissionStatus.onchange = () => {
             console.log("Permission changed to:", permissionStatus.state);
             setMicPermissionState(permissionStatus.state);
@@ -127,10 +113,8 @@ const MessageList = ({
     setSpeechInitialized(true);
   }, [browserSupportsSpeechRecognition]);
 
-  // Update message input with speech transcript (optimized)
   useEffect(() => {
     if (transcript && transcript !== prevTranscript && listening) {
-      // Only update when transcript changes
       const newText = transcript.slice(prevTranscript.length);
       if (newText.trim()) {
         setSendMessageText((prev) => prev + newText);
@@ -139,10 +123,8 @@ const MessageList = ({
     }
   }, [transcript, prevTranscript, listening]);
 
-  // Close emoji picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Check if clicking on emoji button
       if (
         emojiButtonRef.current &&
         !emojiButtonRef.current.contains(event.target) &&
@@ -152,13 +134,11 @@ const MessageList = ({
         setShowEmojiPicker(false);
       }
 
-      // Check if clicking on message menu
       const isClickingOnMenu = event.target.closest(".message-menu");
       if (!isClickingOnMenu && messageWithOpenMenu !== null) {
         setMessageWithOpenMenu(null);
       }
 
-      // Check if clicking on reaction bar or its container
       const isClickingOnReactionBar = event.target.closest(".reaction-bar");
       const isClickingOnReactionContainer = event.target.closest(
         ".reaction-bar-container"
@@ -180,16 +160,13 @@ const MessageList = ({
     };
   }, [messageWithOpenMenu, messageWithOpenEmoji]);
 
-  // Effect to store reply data in a global variable when replying to a message
   useEffect(() => {
     if (replyingTo) {
-      // Store reply data in the window object so it can be accessed by ChatBox
       window.replyingToMessage = replyingTo;
     } else {
       window.replyingToMessage = null;
     }
   }, [replyingTo]);
-  // Toggle speech recognition
   const toggleSpeechRecognition = () => {
     if (listening) {
       stopSpeechRecognition();
@@ -198,39 +175,35 @@ const MessageList = ({
     }
   };
 
-  // Start speech recognition with proper setup and permission handling
   const startSpeechRecognition = async () => {
     if (!browserSupportsSpeechRecognition) {
-      toast.error("Trình duyệt này không hỗ trợ nhận dạng giọng nói");
+      toast.error("This browser does not support voice recognition.");
       return;
     }
 
-    // Nếu quyền đã bị từ chối, hiển thị thông báo hướng dẫn
     if (micPermissionState === "denied") {
       toast.error(
-        "Quyền truy cập microphone bị chặn. Vui lòng cho phép trong cài đặt trình duyệt và tải lại trang.",
+        "Microphone access is blocked. Please allow in browser settings and reload the page.",
         { duration: 5000 }
       );
       return;
     }
 
     try {
-      // Hiển thị thông báo đang chuẩn bị
-      const preparingToast = toast.loading("Đang yêu cầu quyền microphone...");
+      const preparingToast = toast.loading(
+        "Requesting microphone permissions..."
+      );
 
       try {
-        // Gọi getUserMedia để kích hoạt hộp thoại xin quyền nếu cần
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
         });
 
-        // Dừng tracks ngay sau khi có quyền
         stream.getTracks().forEach((track) => track.stop());
 
-        // Đóng thông báo chuẩn bị
         toast.dismiss(preparingToast);
       } catch (err) {
-        console.error("Lỗi truy cập microphone:", err);
+        console.error("Microphone access error:", err);
         toast.dismiss(preparingToast);
 
         if (
@@ -239,23 +212,19 @@ const MessageList = ({
         ) {
           setMicPermissionState("denied");
           toast.error(
-            "Quyền truy cập microphone bị từ chối. Vui lòng cho phép trong cài đặt trình duyệt."
+            "Microphone access denied. Please allow in browser settings."
           );
           return;
         } else {
-          toast.error(`Không thể truy cập microphone: ${err.message}`);
+          toast.error(`Microphone not accessible: ${err.message}`);
           return;
         }
       }
 
-      // Reset transcript
       resetTranscript();
       setPrevTranscript("");
 
-      // Bắt đầu nhận dạng giọng nói với loading indicator
-      const startingToast = toast.loading(
-        "Đang khởi động nhận dạng giọng nói..."
-      );
+      const startingToast = toast.loading("Starting voice recognition...");
 
       try {
         SpeechRecognition.startListening({
@@ -266,24 +235,22 @@ const MessageList = ({
 
         setIsSpeechActive(true);
         toast.dismiss(startingToast);
-        toast.success("Đã bật chế độ ghi âm");
+        toast.success("Recording mode enabled");
       } catch (error) {
-        console.error("Lỗi khởi động nhận dạng giọng nói:", error);
+        console.error("Voice recognition startup error:", error);
         toast.dismiss(startingToast);
-        toast.error("Không thể khởi động nhận dạng giọng nói");
+        toast.error("Unable to start voice recognition");
       }
     } catch (error) {
-      console.error("Lỗi thiết lập nhận dạng giọng nói:", error);
-      toast.error("Không thể khởi tạo nhận dạng giọng nói");
+      console.error("Voice recognition setup error:", error);
+      toast.error("Unable to initialize voice recognition");
     }
   };
 
-  // Stop speech recognition with improved result handling
   const stopSpeechRecognition = () => {
     try {
       SpeechRecognition.stopListening();
 
-      // Lưu kết quả nhận dạng cuối cùng vào input
       if (transcript && transcript.trim()) {
         setSendMessageText((prev) => {
           const newText =
@@ -294,22 +261,20 @@ const MessageList = ({
 
       setIsSpeechActive(false);
 
-      // Reset transcript state
       setTimeout(() => {
         resetTranscript();
         setPrevTranscript("");
       }, 100);
 
-      toast.success("Đã tắt chế độ ghi âm");
+      toast.success("Recording mode is disabled");
     } catch (error) {
-      console.error("Lỗi dừng nhận dạng giọng nói:", error);
-      toast.error("Lỗi dừng ghi âm");
+      console.error("Speech recognition error:", error);
+      toast.error("Recording stop error");
     }
   };
 
   const toggleMenu = (messageId) => {
     setMessageWithOpenMenu((prev) => (prev === messageId ? null : messageId));
-    // Reset emoji picker state nếu mở menu
     if (messageWithOpenEmoji === messageId) {
       setShowReactionBar(null);
       setMessageWithOpenEmoji(null);
@@ -318,7 +283,6 @@ const MessageList = ({
   const toggleEmojiReaction = (messageId) => {
     setMessageWithOpenEmoji((prev) => (prev === messageId ? null : messageId));
     setShowReactionBar((prev) => (prev === messageId ? null : messageId));
-    // Reset menu state nếu mở emoji picker
     if (messageWithOpenMenu === messageId) {
       setMessageWithOpenMenu(null);
     }
@@ -348,19 +312,15 @@ const MessageList = ({
     const extension = fileName.split(".").pop().toLowerCase();
     return imageExtensions.includes(extension);
   };
-  // Handle file upload to Firebase Storage
   const uploadFileToFirebase = async (file, messageId) => {
     try {
-      // Create storage reference
       const fileStorageRef = storageRef(
         storage,
         `chat-files/${chatId}/${messageId}_${file.name}`
       );
 
-      // Start upload
       const uploadTask = uploadBytesResumable(fileStorageRef, file);
 
-      // Monitor upload progress and update state
       uploadTask.on(
         "state_changed",
         (snapshot) => {
@@ -376,10 +336,8 @@ const MessageList = ({
           updateMessageStatus(messageId, "error");
         },
         async () => {
-          // Upload complete, get download URL
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-          // Save file message to Realtime Database
           const messageRef = dbRef(
             rtdb,
             `chats/${chatId}/messages/${messageId}`
@@ -395,7 +353,6 @@ const MessageList = ({
             timestamp: Date.now(),
           });
 
-          // Update local message state
           updateMessageStatus(
             messageId,
             "done",
@@ -421,13 +378,11 @@ const MessageList = ({
   };
 
   const handleFileUpload = (file) => {
-    // Check file size limit (100MB)
     if (file.size > 104857600) {
       toast.error("File size exceeds 100MB limit.");
       return;
     }
 
-    // Create initial message object
     const messageId = Date.now().toString();
     const fileMessage = {
       messageId,
@@ -439,19 +394,15 @@ const MessageList = ({
       status: "uploading",
     };
 
-    // Add message to local state
     setMessages((prev) => [...prev, fileMessage]);
 
-    // Add initial message to database
     const messageRef = dbRef(rtdb, `chats/${chatId}/messages/${messageId}`);
     set(messageRef, fileMessage);
 
-    // Start upload process
     uploadFileToFirebase(file, messageId);
   };
 
   const handleDownloadFile = (fileURL, fileName) => {
-    // Create a temporary anchor element to trigger download
     const link = document.createElement("a");
     link.href = fileURL;
     link.download = fileName;
@@ -484,7 +435,6 @@ const MessageList = ({
       }
     };
 
-    // Add event listeners
     window.addEventListener("dragover", handleDragOver);
     window.addEventListener("dragleave", handleDragLeave);
     window.addEventListener("drop", handleDropFile);
@@ -496,7 +446,6 @@ const MessageList = ({
     };
   }, [chatId, senderEmail]);
 
-  // Handle manual file selection
   const handleFileSelect = () => {
     fileInputRef.current.click();
   };
@@ -509,7 +458,6 @@ const MessageList = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  // Render upload progress
   const renderProgress = (progress) => {
     return (
       <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
@@ -563,6 +511,14 @@ const MessageList = ({
       };
     }
   }, [scrollRef, onScroll]);
+
+  // Effect to scroll to bottom on new messages
+  useEffect(() => {
+    if (scrollRef?.current && messages?.length > 0) {
+      // Always scroll to bottom when new messages arrive
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages?.length, scrollRef]);
 
   console.log("Messages:", messages);
 
@@ -1002,7 +958,9 @@ const MessageList = ({
               type="text"
               value={sendMessageText}
               onChange={(e) => setSendMessageText(e.target.value)}
-              placeholder={listening ? "Đang ghi âm..." : "Write your message"}
+              placeholder={
+                listening ? "Recording in progress..." : "Write your message"
+              }
               className={`h-full text-[#2A3D39] dark:text-white outline-none text-[16px] pl-3 pr-[90px] rounded-lg w-[100%] bg-transparent ${
                 listening ? "bg-[#f0f9f7] dark:bg-gray-700" : ""
               }`}
@@ -1049,10 +1007,10 @@ const MessageList = ({
                 }`}
                 title={
                   listening
-                    ? "Dừng ghi âm"
+                    ? "Stop recording"
                     : micPermissionState === "denied"
-                    ? "Quyền truy cập microphone bị từ chối"
-                    : "Bắt đầu ghi âm"
+                    ? "Microphone access denied"
+                    : "Start recording"
                 }
                 disabled={micPermissionState === "denied"}
               >
@@ -1091,7 +1049,7 @@ const MessageList = ({
           {listening && (
             <div className="absolute bottom-[-24px] left-3 flex items-center gap-1 text-xs text-[#01AA85] dark:text-teal-400">
               <div className="w-2 h-2 rounded-full bg-[#ff4d4f] animate-pulse"></div>
-              <span>Đang ghi âm...</span>
+              <span>Recording in progress...</span>
             </div>
           )}
         </div>
