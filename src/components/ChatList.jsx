@@ -220,8 +220,8 @@ const ChatList = ({ setSelectedUser }) => {
         <header className="items-center flex justify-between">
           <h3 className="text-gray-800 dark:text-gray-200 text-[16px]">
             {activeTab === "chats"
-              ? `Tin nhắn (${chats?.length || 0})`
-              : `Nhóm chat (${groups?.length || 0})`}
+              ? `Message (${chats?.length || 0})`
+              : `Chat group (${groups?.length || 0})`}
           </h3>
           <div className="flex items-center gap-2">
             {activeTab === "groups" && (
@@ -359,14 +359,14 @@ const ChatList = ({ setSelectedUser }) => {
         {activeTab === "groups" && sortedGroups.length === 0 && (
           <div className="flex flex-col items-center justify-center w-full h-40">
             <p className="text-gray-500 dark:text-gray-400">
-              Bạn chưa tham gia nhóm nào
+              You have not joined any groups yet.
             </p>
             <button
               onClick={openCreateGroupModal}
               className="mt-2 flex items-center text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-3 py-2 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/50"
             >
               <HiOutlineUserAdd className="mr-1" size={16} />
-              <span>Tạo nhóm mới</span>
+              <span>Create a new group</span>
             </button>
           </div>
         )}
