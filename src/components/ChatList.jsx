@@ -203,7 +203,7 @@ const ChatList = ({ setSelectedUser }) => {
           }`}
           onClick={() => setActiveTab("chats")}
         >
-          Cuộc trò chuyện
+          Conversation
         </button>
         <button
           className={`flex-1 py-3 text-center font-medium ${
@@ -213,7 +213,7 @@ const ChatList = ({ setSelectedUser }) => {
           }`}
           onClick={() => setActiveTab("groups")}
         >
-          Nhóm
+          Group
         </button>
       </div>
       <div className="w-full mt-[10px] px-5">
@@ -230,7 +230,7 @@ const ChatList = ({ setSelectedUser }) => {
                 className="flex items-center text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-1 rounded-md hover:bg-teal-100 dark:hover:bg-teal-900/50"
               >
                 <HiOutlineUserAdd className="mr-1" size={16} />
-                <span className="text-sm">Tạo nhóm</span>
+                <span className="text-sm">Create Group</span>
               </button>
             )}
           </div>
@@ -347,10 +347,10 @@ const ChatList = ({ setSelectedUser }) => {
         {activeTab === "chats" && sortedChats.length === 0 && (
           <div className="flex flex-col items-center justify-center w-full h-40">
             <p className="text-gray-500 dark:text-gray-400">
-              Bạn chưa có cuộc trò chuyện nào
+              You have no conversations yet
             </p>
             <p className="text-gray-400 dark:text-gray-500 text-sm">
-              Hãy tìm kiếm người dùng để bắt đầu trò chuyện
+              Search for users to start chatting with{" "}
             </p>
           </div>
         )}
